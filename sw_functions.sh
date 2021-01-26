@@ -4,6 +4,16 @@
 
 # SNMP
 
+# Получение модели коммутатора
+# В качестве параметра передаем ip адрес
+# пример строки SNMP: 
+# iso.3.6.1.2.1.1.1.0 = STRING: "D-Link DES-3200-28 Fast Ethernet Switch"
+# функция вернет DES-3200-28
+
+function get_sw_model {
+    echo `snmpget -v2c -c public $1 iso.3.6.1.2.1.1.1.0 | grep -oE "[A-Z]{3}-[0-9]{4}[^ ]*"`
+}
+
 # Получение system_location 
 # В качестве параметра передаем ip адрес
 # пример строки SNMP: 
