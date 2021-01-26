@@ -37,5 +37,33 @@ function get_sw_iproute {
     echo `snmpget -v2c -c public $1 iso.3.6.1.2.1.4.21.1.7.0.0.0.0 |cut -d ":" -f 2| grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"`
 }
 
-
+# интерактивная функция добавления транзитных vlan на коммутаторы
+# параметром передается список ip адресов
+function vlan_add { 
+    ips=$1
+    echo "Введите номера vlan через пробел"
+    read vlans
+    echo "Мы добавляем vlan: $vlans"
+    echo "для коммутаторов: $ips"
+    echo "Продолжить? [y/n]"
+    read answer
+    if [ $answer != "y" ]; then
+        exit
+    fi
+    for ip in $ips; do
+# TODO
+# ввести проверку модели
+        max_ports=$(get_sw_max_ports $ip)
+        commands=""
+        for vlan in $vlans; do
+            commands=${commands}"""
+            create vlan $vlan tag $vlan
+            config vlan $vlan add tag 25-$max_ports
+            """
+        done
+        commands=${commands}"save"
+        exec $basedir/tt.tcl $ip "$commands"
+    done
+    echo "done"
+}
 
