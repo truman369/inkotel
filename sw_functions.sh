@@ -14,6 +14,11 @@ function get_sw_model {
     echo `snmpget -v2c -c public $1 iso.3.6.1.2.1.1.1.0 | grep -oE "[A-Z]{3}-[0-9]{4}[^ ]*"`
 }
 
+# получение максимального количества портов исходя из модели коммутатора
+function get_sw_max_ports {
+    echo `expr "$(get_sw_model $1)" : '.*\([0-9][0-9]\)'`
+}
+
 # Получение system_location 
 # В качестве параметра передаем ip адрес
 # пример строки SNMP: 
@@ -31,4 +36,6 @@ function get_sw_location {
 function get_sw_iproute {
     echo `snmpget -v2c -c public $1 iso.3.6.1.2.1.4.21.1.7.0.0.0.0 |cut -d ":" -f 2| grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"`
 }
+
+
 
