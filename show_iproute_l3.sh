@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # все файлы ищем относительно директории запуска файла
 basedir=$(dirname $(realpath $0))
