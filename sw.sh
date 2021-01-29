@@ -18,7 +18,7 @@ source $basedir/sw_functions.sh
 # ключ - название файла, значение - путь до файла
 declare -A ip_files
 for zone in `ls $ipdir |grep .ip`; do
-    zone_name=`echo $zone | cut -d "." -f 1`
+    zone_name=`echo $zone | sed "s/.ip$//g"`
     ip_files[$zone_name]=`readlink -f $ipdir/$zone`
 done
 
