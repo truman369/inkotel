@@ -22,6 +22,8 @@ for zone in `ls $ipdir |grep .ip`; do
     ip_files[$zone_name]=`readlink -f $ipdir/$zone`
 done
 
+# TODO: выбор нескольких районов
+
 # запрашиваем список ip адресов либо из файла, либо вручную
 echo "Выберите диапазон ip адресов из файлов"
 PS3='Ваш ответ: '
@@ -47,12 +49,18 @@ select answer in ${!ip_files[*]} "ввести вручную" "отмена"; d
     esac
 done
 
+# если вдруг внутри оказались сокращенные ip, преобразуем их
+for ip in $ips; do
+    full_ips+="$(full_ip $ip) "
+done
+ips=$full_ips
+
 # запрашиваем действие над коммутаторами
-# тут мы вызываем функцию с тем же именем, что и в списке выбора
+# в дальнейшем вызываем функцию с тем же именем, что и в списке выбора
 echo "Что нужно сделать?"
-select answer in "vlan_add" "отмена"; do
+select answer in "sw_info" "vlan_add" "vlan_remove" "отмена"; do
     case $answer in
-    "Отмена")
+    "отмена")
         exit
         break
         ;;
@@ -60,11 +68,30 @@ select answer in "vlan_add" "отмена"; do
         echo "мимо"
         ;;
     *)
-        $answer $ips
         break
         ;;
     esac
 done
+
+if echo $answer | grep -iq -E "vlan"; then
+    echo "Введите номера vlan через пробел"
+    read vlans
+    echo "$answer: $vlans"
+    echo "для коммутаторов: $ips"
+    echo "Продолжить? [y/n]"
+    read agree
+    if [ $agree != "y" ]; then
+        exit
+    fi
+else
+    vlans=""
+fi
+for ip in $ips; do
+    # не забывать кавычки, т.к. $vlans - список
+    # без кавычек передается как несколько аргументов
+    $answer "$ip" "$vlans"
+done
+
 
 
 

@@ -93,6 +93,7 @@ expect {
     "*#" {
         # если есть еще параметр, передаем построчно все команды
         if { $argc > 1 } {
+        # TODO: обработка многостраничного вывода
             set commands [split [lindex $argv 1] "\n"]
             foreach command $commands {
                 send "$command\r"
