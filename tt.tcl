@@ -96,7 +96,7 @@ expect {
         # TODO: обработка многостраничного вывода
             set commands [split [lindex $argv 1] "\n"]
             foreach command $commands {
-                send "$command\r"
+                send "[string trimleft $command]\r"
                 expect "*#"
             }
             send "logout\r"
