@@ -79,31 +79,56 @@ function sw_info {
     """
 }
 
-# функция добавления транзитных vlan на коммутаторы
-function vlan_add { 
-# TODO: проверка модели и конфиг для qtech
-    ip=$1; vlans=$2; commands=""
+# функция для работы с vlan на коммутаторах
+function vlan {
+    action=$1; ip=$2; vlans=$3; commands=""
     max_ports=$(get_sw_max_ports $ip)
-    for vlan in $vlans; do
+    model=$(get_sw_model $ip)
+    if [[ "$model" =~ "QSW".* ]]; then
+            commands=${commands}"""
+                conf t
+            """
+            for vlan in $vlans; do
+                if [[ $action == "add" ]]; then
+                    commands=${commands}"""
+                        vlan $vlan
+                            name $vlan
+                        exit
+                        int eth 1/25-$max_ports
+                            switchport trunk allowed vlan add $vlan
+                        exit
+                    """
+                elif [[ $action == "remove" ]]; then
+                    commands=${commands}"""
+                        no vlan $vlan
+                        int eth 1/25-$max_ports
+                            switchport trunk allowed vlan remove $vlan
+                        exit
+                    """
+                fi
+            done
+            commands=${commands}"""
+                end
+                copy run st
+                y
+            """
+    elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
+        for vlan in $vlans; do
+            if [[ $action == "add" ]]; then
+                commands=${commands}"""
+                    create vlan ${vlan} tag ${vlan}
+                    config vlan ${vlan} add tag 25-$max_ports
+                """
+            elif [[ $action == "remove" ]]; then
+                commands=${commands}"""
+                    delete vlan $vlan
+                """
+            fi
+        done
         commands=${commands}"""
-        create vlan $vlan tag $vlan
-        config vlan $vlan add tag 25-$max_ports
+            save
         """
-    done
-    commands=${commands}"save"
+    fi
     send_commands "$ip" "$commands"
 }
 
-# функция полного удаления vlan с коммутатора
-function vlan_remove {
-# TODO: проверка модели и конфиг для qtech
-    ip=$1; vlans=$2; commands=""
-    for vlan in $vlans; do
-        # не забываем про многострочность, даже если одна команда
-        commands=${commands}"""
-        delete vlan $vlan
-        """
-    done
-    commands=${commands}"save"
-    send_commands "$ip" "$commands"
-}

@@ -73,9 +73,10 @@ select answer in "sw_info" "vlan_add" "vlan_remove" "отмена"; do
     esac
 done
 
+func=$answer; action=""; params=""
 if echo $answer | grep -iq -E "vlan"; then
     echo "Введите номера vlan через пробел"
-    read vlans
+    read params
     echo "$answer: $vlans"
     echo "для коммутаторов: $ips"
     echo "Продолжить? [y/n]"
@@ -83,13 +84,14 @@ if echo $answer | grep -iq -E "vlan"; then
     if [ $agree != "y" ]; then
         exit
     fi
-else
-    vlans=""
+    func=`echo $answer | cut -d "_" -f 1`
+    action=`echo $answer | cut -d "_" -f 2`
 fi
 for ip in $ips; do
     # не забывать кавычки, т.к. $vlans - список
     # без кавычек передается как несколько аргументов
-    $answer "$ip" "$vlans"
+    # либо делать анализ аргументов через shift
+    $func $action $ip "$params"
 done
 
 
