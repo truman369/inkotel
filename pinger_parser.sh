@@ -21,9 +21,12 @@ while read ip zone; do
     ip_zones[$zone]+=" $ip"
 done <<<$result
 
+echo "# Все коммутаторы доступа" > $ipdir/all_abon.ip
 for zone in ${!ip_zones[*]}; do
     echo "# Район $zone" > $ipdir/$zone.ip
+    echo "# Район $zone" >> $ipdir/all_abon.ip
     for ip in ${ip_zones[$zone]}; do
         echo $ip >> $ipdir/$zone.ip
+        echo $ip >> $ipdir/all_abon.ip
     done
 done
