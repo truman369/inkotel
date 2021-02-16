@@ -8,7 +8,7 @@ ipdir="$basedir/config/ip/"
 source $basedir/sw_functions.sh
 
 # если есть параметры, то запускаем сразу нужную функцию и выходим
-if [ "$#" > 0 ]; then
+if [[ "$#" > 0 ]]; then
     ip=$(full_ip $1); func=$2; shift 2;
     $func $ip $@
     exit
