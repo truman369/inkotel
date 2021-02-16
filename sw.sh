@@ -7,12 +7,12 @@ ipdir="$basedir/config/ip/"
 # библиотека функций для работы с коммутаторами
 source $basedir/sw_functions.sh
 
-#~ commands=$(<$basedir/config/test.cfg)
-
-#~ for c in $commands; do
-    #~ echo $c
-#~ done
-
+# если есть параметры, то запускаем сразу нужную функцию и выходим
+if [ "$#" > 0 ]; then
+    ip=$(full_ip $1); func=$2; shift 2;
+    $func $ip $@
+    exit
+fi
 
 # задаем ассоциативный массив для файлов ip адресов
 # ключ - название файла, значение - путь до файла
