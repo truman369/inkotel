@@ -40,6 +40,9 @@ set output ""
 #отключаем стандартный вывод
 log_user 0
 
+# для отладки
+# exp_internal 1
+
 # константы для цветов
 set no_color "\033\[0m"
 set red "\033\[1;31m"
@@ -110,12 +113,12 @@ expect {
         # если есть еще параметр, передаем построчно все команды
         if { $argc > 1 } {
         # TODO: обработка многостраничного вывода
-            set commands [split [lindex $argv 1] "\n"]
+            set commands [split [lindex $argv 1] ";"]
             foreach command $commands {
                 send "[string trimleft $command]\r"
                 # пропускаем две строки: первая - сама команда
                 # вторая - подтверждение команды на коммутаторе
-                expect $endline
+                expect $command$endline
                 expect $endline
                 expect -re ".*$endline"
                 # оставшееся записываем в вывод
@@ -133,6 +136,4 @@ expect {
         exit 1
     }
 }
-#puts "Output: [array get expect_out buffer]"
 send_user $output
-
