@@ -91,10 +91,5 @@ for ip in $ips; do
     # не забывать кавычки, т.к. $vlans - список
     # без кавычек передается как несколько аргументов
     # либо делать анализ аргументов через shift
-    $func $action $ip "$params"
+    $func $ip $action "$params"
 done
-
-
-
-
-
