@@ -47,6 +47,7 @@ log_user 0
 set no_color "\033\[0m"
 set red "\033\[1;31m"
 set green "\033\[1;32m"
+set blue "\033\[1;36m"
 set color $no_color
 
 # параметром передается ip адрес
@@ -68,6 +69,9 @@ spawn telnet $pre$ip
 
 # определяем тип коммутатора (узловой или доступа) по названию модели
 # устанавливаем цвет текста приветствия в зависимости от типа
+set is_qtech false
+
+# TODO оптимизировать блок распознавания модели
 
 expect {
     # узловые коммутаторы
@@ -76,8 +80,16 @@ expect {
         set password [lindex $login_data_node 1]
         set color $red
     }
-    # коммутаторы уровня доступа
-    ":" {
+    # коммутаторы уровня доступа qtech
+    "in:$" {
+        set is_qtech true
+        set username [lindex $login_data_access 0]
+        set password [lindex $login_data_access 1]
+        set color $blue
+
+    }
+    # коммутаторы уровня доступа dlink
+    "ame:$" {
         set username [lindex $login_data_access 0]
         set password [lindex $login_data_access 1]
         set color $green
@@ -118,8 +130,10 @@ expect {
                 send "[string trimleft $command]\r"
                 # пропускаем две строки: первая - сама команда
                 # вторая - подтверждение команды на коммутаторе
-                expect $command$endline
-                expect $endline
+                if {$is_qtech == false} {
+                    expect $command$endline
+                    expect $endline
+                }
                 expect -re ".*$endline"
                 # оставшееся записываем в вывод
                 append output $expect_out(buffer)
