@@ -1,11 +1,11 @@
 #!/usr/bin/expect
-
 # TCL скрипт для ускоренного подключения к коммутаторам через telnet
 # для удобства на скрипт делается символическая ссылка в /usr/local/bin/tt
 # пример использования: tt 59.75 - подключиться к 192.168.59.75
 # можно использовать как полный, так и укороченный ip
 # еще вторым параметром можно передать список команд для выполнения
 # сделал для повторного использования другими скриптами
+# в этом случае скрипт возвращает полученные данные
 
 # проверяем текущий файл: запущен он напрямую, или это ссылка
 # и выставляем соответствующие абсолютные пути для остальных файлов
@@ -34,6 +34,18 @@ if { $argc == 0 } {
     exit 1
 }
 
+# переменная для вывода
+set output ""
+
+#отключаем стандартный вывод
+log_user 0
+
+# константы для цветов
+set no_color "\033\[0m"
+set red "\033\[1;31m"
+set green "\033\[1;32m"
+set color $no_color
+
 # параметром передается ip адрес
 set ip [lindex $argv 0]
 
@@ -52,24 +64,20 @@ exec echo $d Подключение к $ip >> /home/troitskiy/j_log
 spawn telnet $pre$ip
 
 # определяем тип коммутатора (узловой или доступа) по названию модели
-# через стороннюю утилиту xdtool задаем профиль эмулятора терминала
-# горячие клавиши alt+n - меню терминал, g - изменить профиль,
-# 1 - пункт для коммутаторов уровня доступа, 2 - для узловых
-# у меня профили отличаются цветом текста в консоли, узловые ярче
-# сделал для привлечения внимания, когда заходишь на узел
+# устанавливаем цвет текста приветствия в зависимости от типа
 
 expect {
     # узловые коммутаторы
     -re "DGS-3627G|DXS-3600-32S|DXS-1210-12SC" {
         set username [lindex $login_data_node 0]
         set password [lindex $login_data_node 1]
-        exec xdotool key alt+n g 2
+        set color $red
     }
     # коммутаторы уровня доступа
     ":" {
         set username [lindex $login_data_access 0]
         set password [lindex $login_data_access 1]
-        exec xdotool key alt+n g 1
+        set color $green
     }
     # коммутатор не доступен
     timeout {
@@ -80,7 +88,15 @@ expect {
 
 # логинимся
 send "$username\r"
-expect "*ord:"
+# заодно смотрим, какое окончание строки на этой модели коммутатора
+expect {
+    -re "\n\r(.*)ord:" {
+        set endline "\n\r"
+    }
+    -re "\r\n(.*)ord:" {
+        set endline "\r\n"
+    }
+}
 send "$password\r"
 
 # если приветствие с решеткой, то передаем управление пользователю
@@ -97,10 +113,18 @@ expect {
             set commands [split [lindex $argv 1] "\n"]
             foreach command $commands {
                 send "[string trimleft $command]\r"
+                # пропускаем две строки: первая - сама команда
+                # вторая - подтверждение команды на коммутаторе
+                expect $endline
+                expect $endline
+                expect -re ".*$endline"
+                # оставшееся записываем в вывод
+                append output $expect_out(buffer)
                 expect "*#"
             }
             send "logout\r"
         } else {
+            send_user "Connected to $color$ip$no_color"
             interact
         }
     }
@@ -109,5 +133,6 @@ expect {
         exit 1
     }
 }
-
+#puts "Output: [array get expect_out buffer]"
+send_user $output
 
