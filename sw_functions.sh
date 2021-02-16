@@ -52,7 +52,9 @@ function get_sw_iproute {
 # $commands - multiline string
 function send_commands {
     ip=$1; commands=$2
-    #~ expect $basedir/../test.tcl "$ip" "$commands"
+    # удаляем последнюю точку с запятой
+    commands=`echo $commands | sed 's/;$//'`
+    # echo $commands
     expect $basedir/tt.tcl "$ip" "$commands"
 }
 
@@ -81,54 +83,46 @@ function sw_info {
 
 # функция для работы с vlan на коммутаторах
 function vlan {
-    action=$1; ip=$2; vlans=$3; commands=""
+    ip=$1; action=$2; shift 2; vlans=$@; commands=""
     max_ports=$(get_sw_max_ports $ip)
     model=$(get_sw_model $ip)
     if [[ "$model" =~ "QSW".* ]]; then
-            commands=${commands}"""
-                conf t
-            """
+            commands+="conf t;"
             for vlan in $vlans; do
                 if [[ $action == "add" ]]; then
-                    commands=${commands}"""
-                        vlan $vlan
-                            name $vlan
-                        exit
-                        int eth 1/25-$max_ports
-                            switchport trunk allowed vlan add $vlan
-                        exit
-                    """
+                    commands+="vlan $vlan;"
+                    commands+="    name $vlan;"
+                    commands+="exit;"
+                    commands+="int eth 1/25-$max_ports;"
+                    commands+="    switchport trunk allowed vlan add $vlan;"
+                    commands+="exit;"
                 elif [[ $action == "remove" ]]; then
-                    commands=${commands}"""
-                        no vlan $vlan
-                        int eth 1/25-$max_ports
-                            switchport trunk allowed vlan remove $vlan
-                        exit
-                    """
+                    commands+="no vlan $vlan;"
+                    commands+="int eth 1/25-$max_ports;"
+                    commands+="    switchport trunk allowed vlan remove $vlan;"
+                    commands+="exit;"
                 fi
             done
-            commands=${commands}"""
-                end
-                copy run st
-                y
-            """
+            commands+="end; copy run st; y;"
     elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         for vlan in $vlans; do
             if [[ $action == "add" ]]; then
-                commands=${commands}"""
-                    create vlan ${vlan} tag ${vlan}
-                    config vlan ${vlan} add tag 25-$max_ports
-                """
+                commands+="create vlan ${vlan} tag ${vlan};"
+                commands+="config vlan ${vlan} add tag 25-$max_ports;"
             elif [[ $action == "remove" ]]; then
-                commands=${commands}"""
-                    delete vlan $vlan
-                """
+                commands+="delete vlan $vlan;"
             fi
         done
-        commands=${commands}"""
-            save
-        """
+        commands+="save;"
     fi
     send_commands "$ip" "$commands"
 }
 
+# функция нахождения ip по acl на передаваемых портах
+function get_acl_ip {
+    ip=$1; shift; ports=$@; commands=""
+    for port in $ports; do
+        commands+="sh conf cur inc \"10 add access_id $port ip s\";"
+    done
+    send_commands "$ip" "$commands"
+}
