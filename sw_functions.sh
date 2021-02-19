@@ -139,3 +139,26 @@ function get_acl {
         echo "$ip: $model not supported"
     fi    
 }
+
+function get_unt_ports_acl {
+    ip=$1; vlan=$2
+    max_ports=$(get_sw_max_ports $ip)
+    #ищем нетегированные порты
+    unt_ports=`snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.4.3.1.4 | grep "\.$vlan =" | cut -d " " -f 4-7 | sed 's/ //g'`
+    unt_ports="0x${unt_ports}"
+    # начальная маска - первый из 32 бит единичный, соответствует 1 порту.
+    mask=0x80000000 
+    # перебираем каждый порт
+    i=0; while (( $i < $max_ports )); do let "i = i + 1" 
+        # перемножаем побитово, если маска совпала, проверяем состояние порта и маки
+        if `let "unt_ports & mask"`; then 
+            # проверяем, включен ли порт
+            if [ `snmpget -v2c -c public $ip 1.3.6.1.2.1.2.2.1.7.$i | cut -d " " -f 4` = 1 ]; then
+                acl=$(get_acl "$ip" "$i")
+                echo "$ip $acl"
+            fi
+        fi
+        # сдвигаем маску на 1 бит вправо
+        let "mask >>= 1"
+    done
+}
