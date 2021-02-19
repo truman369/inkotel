@@ -50,7 +50,7 @@ function get_sw_iproute {
 
 # построчная отправка команд через tt.tcl 
 function send_commands {
-    ip=$1; commands=$2
+    ip=$1; shift; commands=$@
     # удаляем последнюю точку с запятой
     commands=`echo $commands | sed 's/;$//'`
     # echo $commands
@@ -121,18 +121,20 @@ function vlan {
 
 # функция нахождения ip по acl на передаваемых портах
 function get_acl {
-    ip=$1; shift; ports=$@; commands=""
+    ip=$1; shift; ports=$@; commands=""; result=""
     model=$(get_sw_model $ip)
     if [[ "$model" =~ "QSW".* ]]; then
         for port in $ports; do
             commands+="sh am int eth 1/$port;"
         done
+        result=`send_commands "$ip" "$commands"`
     elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         for port in $ports; do
             commands+="sh conf cur inc \"10 add access_id $port ip s\";"
         done
+        result=`send_commands "$ip" "$commands"`
     else
         echo "$ip: $model not supported"
     fi    
-    send_commands "$ip" "$commands"
+    echo "$result"
 }
