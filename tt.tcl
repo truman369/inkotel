@@ -89,7 +89,7 @@ expect {
 
     }
     # коммутаторы уровня доступа dlink
-    "ame:$" {
+    -re "ame: *$" {
         set username [lindex $login_data_access 0]
         set password [lindex $login_data_access 1]
         set color $green
