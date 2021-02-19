@@ -121,20 +121,61 @@ function vlan {
 
 # функция нахождения ip по acl на передаваемых портах
 function get_acl {
-    ip=$1; shift; ports=$@; commands=""; result=""
+    ip=$1; shift; ports=$@; commands="";
     model=$(get_sw_model $ip)
     if [[ "$model" =~ "QSW".* ]]; then
         for port in $ports; do
             commands+="sh am int eth 1/$port;"
         done
         result=`send_commands "$ip" "$commands"`
+        # начинаем считывать построчно результат, если натыкаемся на строчку с Ethernet,
+        # то ставим флаг, что проверяем конфиг порта, идем дальше, пока не найдем ip-pool
+        # если снова наткнулись на Ethernet, значит am не указан, обнуляем флаг
+        out=$(
+            echo "$result" | while read line; do
+                if [[ "$line" =~ "Ethernet" ]]; then
+                    if [[ $port_flag == true ]]; then
+                        port_flag=false
+                        echo "null"
+                    else
+                        echo "$line" | cut -d "/" -f 2
+                        port_flag=true
+                    fi
+                fi
+                if [[ ($port_flag == true) && ("$line" =~ "ip-pool") ]]; then
+                    port_flag=false
+                    echo -en "$line" | cut -d " " -f 3 | sed 's/ //g'
+                fi
+            done
+        )
+        i=0; out2=""
+        for line in $out; do
+            if [[ $line > 0 ]]; then
+                let i+=1
+                out2+="$line "
+                if [[ $(($i % 2)) -eq 0 ]]; then
+                    out2+="\n"
+                fi
+            fi
+        done
+        echo -en $out2
+        #echo "Output: $out"
     elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         for port in $ports; do
             commands+="sh conf cur inc \"10 add access_id $port ip s\";"
         done
-        result=`send_commands "$ip" "$commands"`
+        result=`send_commands "$ip" "$commands" | sed 's/source_/\n/g' | grep "^ip" | tr -d '[:alpha:]'`
+        # config access_profile profile_id 10 add access_id 1 ip source_ip 1.2.3.4 port 1 permit
+        i=0
+        echo "$result" | while read line; do
+            acl=`echo $line | cut -d " " -f 1`
+            port=`echo $line | cut -d " " -f 2`
+            echo "$port $acl"
+        done
     else
         echo "$ip: $model not supported"
     fi    
-    echo "$result"
+    #echo "$result"
 }
+
+# подумать над форматом, и случай, когда пустой результат
