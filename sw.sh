@@ -58,8 +58,8 @@ ips=$full_ips
 # запрашиваем действие над коммутаторами
 # в дальнейшем вызываем функцию с тем же именем, что и в списке выбора
 echo "Что нужно сделать?"
-select answer in "sw_info" "vlan_add" "vlan_remove" "отмена"; do
-    case $answer in
+select func in "get_unt_ports_acl" "vlan" "отмена"; do
+    case $func in
     "отмена")
         exit
         break
@@ -72,24 +72,16 @@ select answer in "sw_info" "vlan_add" "vlan_remove" "отмена"; do
         ;;
     esac
 done
+echo "Введите параметры через пробел: "
+read params
 
-func=$answer; action=""; params=""
-if echo $answer | grep -iq -E "vlan"; then
-    echo "Введите номера vlan через пробел"
-    read params
-    echo "$answer: $vlans"
-    echo "для коммутаторов: $ips"
-    echo "Продолжить? [y/n]"
-    read agree
-    if [ $agree != "y" ]; then
-        exit
-    fi
-    func=`echo $answer | cut -d "_" -f 1`
-    action=`echo $answer | cut -d "_" -f 2`
+echo "$func: $params"
+echo "для коммутаторов: $ips"
+echo "Продолжить? [y/n]"
+read agree
+if [ $agree != "y" ]; then
+    exit
 fi
 for ip in $ips; do
-    # не забывать кавычки, т.к. $vlans - список
-    # без кавычек передается как несколько аргументов
-    # либо делать анализ аргументов через shift
-    $func $ip $action "$params"
+    $func $ip $params
 done
