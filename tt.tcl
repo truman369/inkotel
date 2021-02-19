@@ -124,24 +124,58 @@ expect {
     "*#" {
         # если есть еще параметр, передаем построчно все команды
         if { $argc > 1 } {
-        # TODO: обработка многостраничного вывода
             set commands [split [lindex $argv 1] ";"]
             foreach command $commands {
                 send "[string trimleft $command]\r"
-                # пропускаем две строки: первая - сама команда
-                # вторая - подтверждение команды на коммутаторе
-                if {$is_qtech == false} {
-                    expect $command$endline
-                    expect $endline
+                if {$is_qtech == true} {
+                    expect {
+                        # находимся в конфигурационном режиме
+                        "*)#" {
+                            expect "*"
+                        }
+                        # ввод команды
+                        "$command$endline" {
+                            expect {
+                                # добавляем каждую строку вывода в output
+                                "*$endline" {
+                                    append output "$expect_out(buffer)"
+                                    exp_continue
+                                }
+                                # если многостраничный вывод
+                                -ex "--More--" {
+                                    send -- " "
+                                    exp_continue
+                                }
+                                # пока не встретим решетку
+                                "*#" {}
+                            }
+                        }
+                    }
+                } else {
+                    # пропускаем две строки: первая - сама команда
+                    # вторая - подтверждение команды на коммутаторе
+                    # с концом строки не очень ясно на разных моделях
+                    expect -re "$command\(\r)?$endline"
+                    expect -re "(\r)?($endline)+"
+                    # оставшееся записываем в вывод построчно до решетки
+                    expect {
+                        "*$endline" {
+                            append output "$expect_out(buffer)"
+                            exp_continue
+                        }
+                        # многостраничный вывод
+                        "CTRL+C" {
+                            send "a"
+                            exp_continue
+                        }
+                        "*#" {}
+                    }
                 }
-                expect -re ".*$endline"
-                # оставшееся записываем в вывод
-                append output $expect_out(buffer)
-                expect "*#"
             }
             send "logout\r"
         } else {
-            send_user "Connected to $color$ip$no_color"
+            set location [exec $basedir/sw.sh $ip get_sw_location]
+            send_user "Connected to $color$ip$no_color $location$endline"
             interact
         }
     }
