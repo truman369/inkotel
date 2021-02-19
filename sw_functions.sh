@@ -27,11 +27,11 @@ function get_sw_max_ports {
 function get_sw_location {
     ip=$1
     location=`snmpget -v2c -c public $ip iso.3.6.1.2.1.1.6.0 \
-          | cut -d ":" -f 2 \
-          | sed 's/^ //;s/"//g' \
-          | sed "s/'//g" \
-          | sed 's/\///g' \
-          | sed 's/\\\//g'`
+              | cut -d ":" -f 2 \
+              | sed 's/^ //;s/"//g' \
+              | sed "s/'//g" \
+              | sed 's/\///g' \
+              | sed 's/\\\//g'`
     if echo $location | grep -iq "iso"; then
         location="(нет данных)"
     fi
@@ -49,7 +49,6 @@ function get_sw_iproute {
 }
 
 # построчная отправка команд через tt.tcl 
-# $commands - multiline string
 function send_commands {
     ip=$1; commands=$2
     # удаляем последнюю точку с запятой
@@ -70,7 +69,7 @@ function full_ip {
     echo "$pre$ip"
 }
 
-function sw_info {
+function show {
     ip=$1
     echo """
     ==============================
@@ -87,23 +86,23 @@ function vlan {
     max_ports=$(get_sw_max_ports $ip)
     model=$(get_sw_model $ip)
     if [[ "$model" =~ "QSW".* ]]; then
-            commands+="conf t;"
-            for vlan in $vlans; do
-                if [[ $action == "add" ]]; then
-                    commands+="vlan $vlan;"
-                    commands+="    name $vlan;"
-                    commands+="exit;"
-                    commands+="int eth 1/25-$max_ports;"
-                    commands+="    switchport trunk allowed vlan add $vlan;"
-                    commands+="exit;"
-                elif [[ $action == "remove" ]]; then
-                    commands+="no vlan $vlan;"
-                    commands+="int eth 1/25-$max_ports;"
-                    commands+="    switchport trunk allowed vlan remove $vlan;"
-                    commands+="exit;"
-                fi
-            done
-            commands+="end; copy run st; y;"
+        commands+="conf t;"
+        for vlan in $vlans; do
+            if [[ $action == "add" ]]; then
+                commands+="vlan $vlan;"
+                commands+="    name $vlan;"
+                commands+="exit;"
+                commands+="int eth 1/25-$max_ports;"
+                commands+="    switchport trunk allowed vlan add $vlan;"
+                commands+="exit;"
+            elif [[ $action == "remove" ]]; then
+                commands+="no vlan $vlan;"
+                commands+="int eth 1/25-$max_ports;"
+                commands+="    switchport trunk allowed vlan remove $vlan;"
+                commands+="exit;"
+            fi
+        done
+        #commands+="end; copy run st; y;"
     elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         for vlan in $vlans; do
             if [[ $action == "add" ]]; then
@@ -113,16 +112,27 @@ function vlan {
                 commands+="delete vlan $vlan;"
             fi
         done
-        commands+="save;"
+        #commands+="save;"
+    else
+        echo "$ip: $model not supported"
     fi
     send_commands "$ip" "$commands"
 }
 
 # функция нахождения ip по acl на передаваемых портах
-function get_acl_ip {
+function get_acl {
     ip=$1; shift; ports=$@; commands=""
-    for port in $ports; do
-        commands+="sh conf cur inc \"10 add access_id $port ip s\";"
-    done
+    model=$(get_sw_model $ip)
+    if [[ "$model" =~ "QSW".* ]]; then
+        for port in $ports; do
+            commands+="sh am int eth 1/$port;"
+        done
+    elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
+        for port in $ports; do
+            commands+="sh conf cur inc \"10 add access_id $port ip s\";"
+        done
+    else
+        echo "$ip: $model not supported"
+    fi    
     send_commands "$ip" "$commands"
 }
