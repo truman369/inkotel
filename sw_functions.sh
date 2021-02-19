@@ -127,12 +127,14 @@ function get_acl {
         for port in $ports; do
             acl=`send_commands "$ip" "sh am int eth 1/$port;" | grep ip-pool`
             acl=`echo $acl | cut -d " " -f 3`
-            echo "$port $acl"
+            echo "$acl"
         done
     elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         for port in $ports; do
-            acl=`send_commands "$ip" "sh conf cur inc \"10 add access_id $port ip s\";" | grep config | cut -d " " -f 10`
-            echo "$port $acl"
+            #acl=`send_commands "$ip" "sh conf cur inc \"10 add access_id $port ip s\";" | grep config | cut -d " " -f 10`
+            acl=`send_commands "$ip" "sh conf cur inc \"port $port p\";" | grep "profile_id 10"| sed 's/  / /g' |cut -d " " -f 10`
+
+            echo "$acl"
         done
 
     else
@@ -149,13 +151,18 @@ function get_unt_ports_acl {
     # начальная маска - первый из 32 бит единичный, соответствует 1 порту.
     mask=0x80000000 
     # перебираем каждый порт
-    i=0; while (( $i < $max_ports )); do let "i = i + 1" 
+    port=0; while (( $port < $max_ports )); do let "port = port + 1" 
         # перемножаем побитово, если маска совпала, проверяем состояние порта и маки
         if `let "unt_ports & mask"`; then 
             # проверяем, включен ли порт
-            if [ `snmpget -v2c -c public $ip 1.3.6.1.2.1.2.2.1.7.$i | cut -d " " -f 4` = 1 ]; then
-                acl=$(get_acl "$ip" "$i")
-                echo "$ip $acl"
+            if [ `snmpget -v2c -c public $ip 1.3.6.1.2.1.2.2.1.7.$port | cut -d " " -f 4` = 1 ]; then
+                acl=$(get_acl "$ip" "$port")
+                if [[ "$acl" == "" ]]; then
+                    acl=$(snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.2.2.1.2.$vlan | egrep ": $port$" | cut -d " " -f 1 | cut -d "." -f 15-20 | sed 's/\./ /g' | while read mac; do
+                       printf '%02x:%02x:%02x:%02x:%02x:%02x ' $mac
+                    done)
+                fi
+                echo "$ip $port $acl"
             fi
         fi
         # сдвигаем маску на 1 бит вправо
