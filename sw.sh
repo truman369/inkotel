@@ -58,8 +58,13 @@ ips=$full_ips
 # запрашиваем действие над коммутаторами
 # в дальнейшем вызываем функцию с тем же именем, что и в списке выбора
 echo "Что нужно сделать?"
-select func in "get_unt_ports_acl" "vlan" "отмена"; do
+select func in "custom" "send_commands" "get_unt_ports_acl" "vlan" "отмена"; do
     case $func in
+    "custom")
+        echo "Введите имя функции: "
+        read func
+        break
+        ;;
     "отмена")
         exit
         break
@@ -83,5 +88,6 @@ if [ $agree != "y" ]; then
     exit
 fi
 for ip in $ips; do
+    echo "Processing $ip"
     $func $ip $params
 done
