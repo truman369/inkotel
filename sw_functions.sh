@@ -103,7 +103,7 @@ function vlan {
             fi
         done
         #commands+="end; copy run st; y;"
-    elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
+    elif [[ "$model" =~ .*"3026"|"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         for vlan in $vlans; do
             if [[ $action == "add" ]]; then
                 commands+="create vlan ${vlan} tag ${vlan};"
@@ -147,6 +147,10 @@ function get_unt_ports_acl {
     max_ports=$(get_sw_max_ports $ip)
     #ищем нетегированные порты
     unt_ports=`snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.4.3.1.4 | grep "\.$vlan =" | cut -d " " -f 4-7 | sed 's/ //g'`
+    # странный баг на qtech 57.209, при определенных комбинациях вланов на портах выдает
+    # iso.3.6.1.2.1.17.7.1.4.3.1.4.1013 = STRING: "@ " вместо Hex-STRING
+    # на qtech нулевые байты не отображаются, поэтому форматируем до 8 знаков и заполняем нулями
+    unt_ports=`printf "%-#8s" $unt_ports | sed 's/ /0/g'`
     unt_ports="0x${unt_ports}"
     # начальная маска - первый из 32 бит единичный, соответствует 1 порту.
     mask=0x80000000 
