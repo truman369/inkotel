@@ -39,7 +39,4 @@ for ip in $ips; do
     # -e обрабатывать escape последовательности
     echo -e "$text_color$ip ($location) - $iproute"  
 done
-
-
-
-
+echo -en "\n"

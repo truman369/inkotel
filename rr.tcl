@@ -13,6 +13,9 @@ if { [file type $argv0] == "file" } {
     set basedir [file dirname [file readlink $argv0]]
 }
 
+#отключаем стандартный вывод
+log_user 0
+
 # проверяем количество и валидность параметров
 if { $argc == 0 } {
     # запускаем скрипт вывода всех маршрутов
@@ -102,7 +105,7 @@ expect {
     }
 }
 # отображаем обновленный список маршрутов
-puts [exec $basedir/show_iproute_l3.sh]
+send_user [exec $basedir/show_iproute_l3.sh]
 
 # задаем текущую дату и пишем лог в журнал
 set d [exec date +%T]
