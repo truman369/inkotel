@@ -126,7 +126,8 @@ expect {
         if { $argc > 1 } {
             set commands [split [lindex $argv 1] ";"]
             foreach command $commands {
-                send "[string trimleft $command]\r"
+                set command [string trimleft $command]
+                send "$command\r"
                 if {$is_qtech == true} {
                     expect {
                         # находимся в конфигурационном режиме
