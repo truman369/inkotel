@@ -162,6 +162,11 @@ expect {
                                     send -- " "
                                     exp_continue
                                 }
+                                # подтверждение сохранения
+                                "Y/N]:" {
+                                    send "y\r"
+                                    exp_continue
+                                }
                                 # пока не встретим решетку
                                 "$prompt" {}
                             }
