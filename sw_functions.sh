@@ -337,7 +337,7 @@ function backup {
         "DES-3026" )
             commands="upload configuration $server cfg/backup/$ip.cfg"
         ;;
-        "DGS-3000"* | "DGS-3627G" | *"C1" )
+        "DGS-3000"* | "DGS-3627G" | "DGS-3120"* | *"C1" )
             commands="upload cfg_toTFTP $server dest_file cfg/backup/$ip.cfg"
         ;;
         "DES-3526" | "DES-3028G" | "DES-3200"* | "DGS-1210"* )
