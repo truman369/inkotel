@@ -20,9 +20,9 @@ CYAN="\e[36m"
 
 function get_sw_model {
     ip=$1
-    echo `snmpget -v2c -c public $ip iso.3.6.1.2.1.1.1.0 \
-          | grep -oE "[A-Z]{3}-[0-9]{4}[^ ]*" \
-          | sed 's/"//g'`
+    echo `snmpget -v2c -c public $ip iso.3.6.1.2.1.1.1.0 |
+          grep -oE "[A-Z]{3}-[0-9]{4}[^ ]*" |
+          sed 's/"//g'`
 }
 
 # получение максимального количества портов исходя из модели коммутатора
@@ -36,12 +36,12 @@ function get_sw_max_ports {
 
 function get_sw_location {
     ip=$1
-    location=`snmpget -v2c -c public $ip iso.3.6.1.2.1.1.6.0 \
-              | cut -d ":" -f 2 \
-              | sed 's/^ //;s/"//g' \
-              | sed "s/'//g" \
-              | sed 's/\///g' \
-              | sed 's/\\\//g'`
+    location=`snmpget -v2c -c public $ip iso.3.6.1.2.1.1.6.0 |
+              cut -d ":" -f 2 |
+              sed 's/^ //;s/"//g' |
+              sed "s/'//g" |
+              sed 's/\///g' |
+              sed 's/\\\//g'`
     if echo $location | grep -iq "iso"; then
         location="(нет данных)"
     fi
@@ -53,9 +53,9 @@ function get_sw_location {
 
 function get_sw_iproute {
     ip=$1
-    echo `snmpget -v2c -c public $ip iso.3.6.1.2.1.4.21.1.7.0.0.0.0 \
-          | cut -d ":" -f 2 \
-          | grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"`
+    echo `snmpget -v2c -c public $ip iso.3.6.1.2.1.4.21.1.7.0.0.0.0 |
+          cut -d ":" -f 2 |
+          grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"`
 }
 
 # форматированная шестнадцатеричная карта портов для вланов
@@ -79,13 +79,13 @@ function get_ports_mask {
         oid=2
         # all port with vlan
     fi
-    echo `snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.4.3.1.$oid \
-          | grep "\.$vlan =" \
-          | cut -d " " -f 4-7 \
-          | sed 's/ //g' \
-          | xargs printf '%-8s' \
-          | sed 's/ /0/g' \
-          | sed 's/^/0x/g'`
+    echo `snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.4.3.1.$oid |
+          grep "\.$vlan =" |
+          cut -d " " -f 4-7 |
+          sed 's/ //g' |
+          xargs printf '%-8s' |
+          sed 's/ /0/g' |
+          sed 's/^/0x/g'`
 }
 
 # таблица mac адресов
@@ -93,12 +93,12 @@ function get_ports_mask {
 
 function get_mac_table {
     ip=$1; port=$2; vlan=$3;
-    snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.2.2.1.2.$vlan \
-    | egrep ": $port$" \
-    | cut -d " " -f 1 \
-    | cut -d "." -f 15-20 \
-    | sed 's/\./ /g' \
-    | while read mac; do
+    snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.2.2.1.2.$vlan |
+    egrep ": $port$" |
+    cut -d " " -f 1 |
+    cut -d "." -f 15-20 |
+    sed 's/\./ /g' |
+    while read mac; do
         printf '%02x:%02x:%02x:%02x:%02x:%02x\n' $mac
     done
 }
@@ -113,13 +113,13 @@ function get_ports_vlan {
     # обнуляем счетчики портов
     untagged_ports=""
     tagged_ports=""
-    i=0; while (( $i < $max_ports )); do let "i = i + 1"
+    for i in `seq $max_ports`; do
         # перемножаем побитово, если маска совпала, проверяем тег
         if `let "all_ports & mask"`; then 
             if `let "unt_ports & mask"`; then
-                untagged_ports="${untagged_ports}$i "
+                untagged_ports+="$i "
             else
-                tagged_ports="${tagged_ports}$i "
+                tagged_ports+="$i "
             fi
         fi
         # сдвигаем маску на 1 бит вправо
@@ -139,7 +139,7 @@ function get_ports_vlan {
 
 function get_port_state {
     ip=$1; port=$2
-    if [ `snmpget -v2c -c public $ip 1.3.6.1.2.1.2.2.1.7.$port | cut -d " " -f 4` = 1 ]; then
+    if [[ `snmpget -v2c -c public $ip 1.3.6.1.2.1.2.2.1.7.$port | cut -d " " -f 4` = 1 ]]; then
         echo "enabled"
     else
         echo "disabled"
@@ -317,38 +317,14 @@ function get_acl {
         done
     elif [[ "$model" =~ .*"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         for port in $ports; do
-            #acl=`send_commands "$ip" "sh conf cur inc \"10 add access_id $port ip s\";" | grep config | cut -d " " -f 10`
-            acl=`send_commands "$ip" "sh conf cur inc \"port $port p\";" | grep "profile_id 10"| sed 's/  / /g' |cut -d " " -f 10`
-
+            acl=$(send_commands "$ip" "sh conf cur inc \"port $port p\";" |
+                  grep "profile_id 10"|
+                  sed 's/  / /g' |
+                  cut -d " " -f 10)
             echo "$acl"
         done
 
     else
         echo "$ip: $model not supported"
     fi    
-}
-
-function get_unt_ports_acl {
-    ip=$1; vlan=$2
-    max_ports=$(get_sw_max_ports $ip)
-    #ищем нетегированные порты
-    unt_mask=$(get_ports_mask $ip $vlan "untagged")
-    # начальная маска - первый из 32 бит единичный, соответствует 1 порту.
-    # 10000000000000000000000000000000
-    mask=0x80000000 
-    # перебираем каждый порт
-    for port in `seq $max_ports`; do
-        # перемножаем побитово, если маска совпала, и порт включен, считываем acl
-        let "result = unt_mask & mask"
-        if [[ ($result != 0) && $(get_port_state $ip $port) ]]; then
-            acl=$(get_acl "$ip" "$port")
-            # если правил нет, вместо них выводим mac адрес на порту
-            if [[ "$acl" == "" ]]; then
-                acl=$(get_mac_table $ip $port $vlan)
-            fi
-            echo "$ip $port $acl"
-        fi
-        # сдвигаем маску на 1 бит вправо
-        let "mask >>= 1"
-    done
 }
