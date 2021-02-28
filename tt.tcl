@@ -190,6 +190,11 @@ expect {
                             send "q"
                             exp_continue
                         }
+                        # подтверждение загрузки по tftp на DXS
+                        "]?" {
+                            send "\r"
+                            exp_continue
+                        }
                         "$prompt" {}
                     }
                 }
