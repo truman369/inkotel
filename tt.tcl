@@ -47,6 +47,7 @@ log_user 0
 set no_color "\033\[0m"
 set red "\033\[1;31m"
 set green "\033\[1;32m"
+set yellow "\033\[1;33m"
 set blue "\033\[1;36m"
 set color $no_color
 
@@ -73,9 +74,18 @@ set is_qtech false
 
 # TODO оптимизировать блок распознавания модели
 
+set prompt "*#"
+
 expect {
+    # костыль 1210
+    -re "DXS-1210-12SC login:" {
+        set username [lindex $login_data_node 0]
+        set password [lindex $login_data_node 1]
+        set color $yellow
+        set prompt "*>"
+    }
     # узловые коммутаторы
-    -re "DGS-3627G|DXS-3600-32S|DXS-1210-12SC" {
+    -re "DGS-3627G|DXS-3600-32S|DXS-1210-12SC 10GbE" {
         set username [lindex $login_data_node 0]
         set password [lindex $login_data_node 1]
         set color $red
@@ -114,6 +124,11 @@ expect {
 }
 send "$password\r"
 
+# костыль 1210
+if { $prompt == "*>"} {
+    set endline "\r\n"
+}
+
 # если приветствие с решеткой, то передаем управление пользователю
 # если снова предлагают ввести username или login, то пароль не подошел
 expect {
@@ -121,7 +136,7 @@ expect {
         send_error ">>> wrong password\n"
         exit 1
     }
-    "*#" {
+    "$prompt" {
         # если есть еще параметр, передаем построчно все команды
         if { $argc > 1 } {
             set commands [split [lindex $argv 1] ";"]
@@ -148,7 +163,7 @@ expect {
                                     exp_continue
                                 }
                                 # пока не встретим решетку
-                                "*#" {}
+                                "$prompt" {}
                             }
                         }
                     }
@@ -175,7 +190,7 @@ expect {
                             send "q"
                             exp_continue
                         }
-                        "*#" {}
+                        "$prompt" {}
                     }
                 }
             }
