@@ -225,8 +225,6 @@ function arp {
     else
         echo "$result"
     fi
-
-
 }
 
 function show {
@@ -323,8 +321,42 @@ function get_acl {
                   cut -d " " -f 10)
             echo "$acl"
         done
-
     else
         echo "$ip: $model not supported"
     fi    
+}
+
+# сохранение настроек на tftp
+function backup {
+    ip=$(full_ip $1)
+    model=$(get_sw_model $ip)
+    net=`echo $ip | cut -d "." -f 3`
+    backup_dir="cfg/backup/"
+    server="192.168.$net.250"
+    case $model in
+        "DES-3026" )
+            commands="upload configuration $server cfg/backup/$ip.cfg"
+        ;;
+        "DGS-3000"* | "DGS-3627G" | *"C1" )
+            commands="upload cfg_toTFTP $server dest_file cfg/backup/$ip.cfg"
+        ;;
+        "DES-3526" | "DES-3028G" | "DES-3200"* | "DGS-1210"* )
+            commands="upload cfg_toTFTP $server cfg/backup/$ip.cfg"
+        ;;
+        "DXS-3600-32S" )
+            commands="copy running-config tftp: //$server/cfg/backup/$ip.cfg"
+        ;;
+        "QSW"* )
+            commands="copy running-config tftp://$server/cfg/backup/$ip.cfg"
+        ;;
+        * )
+            commands=""
+        ;;
+    esac
+    if [[ $commands == "" ]]; then
+        echo "$ip: $model not supported"
+    else
+        echo "Backup $ip"
+        send_commands "$ip" "$commands"
+    fi
 }
