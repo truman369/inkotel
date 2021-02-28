@@ -4,6 +4,16 @@
 # Библиотека функций для работы с коммутаторами #
 #################################################
 
+# константы для цветов
+NO_COLOR="\e[39m"
+GRAY="\e[90m"
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+BLUE="\e[34m"
+MAGENTA="\e[35m"
+CYAN="\e[36m"
+
 # получение модели коммутатора по SNMP
 # iso.3.6.1.2.1.1.1.0 = STRING: "D-Link DES-3200-28 Fast Ethernet Switch"
 # функция вернет DES-3200-28
@@ -157,6 +167,66 @@ function full_ip {
         pre=""
     fi
     echo "$pre$ip"
+}
+
+# преобразование маски подсети из префикса
+function prefix2mask {
+    prefix=$1;
+    for (( i=0; i < 32; i++ )); do
+        if [[ $i -lt $prefix ]]; then
+            bit=1
+        else
+            bit=0
+        fi
+        if [[ $(( i % 8 )) -eq 0 ]]; then
+            spacer=" "
+        else
+            spacer=""
+        fi
+        bitmask+="${spacer}${bit}"
+    done
+    for octet in $bitmask; do
+        mask+="$(( 2#$octet ))."
+    done
+    echo $mask | sed 's/.$//g'
+}
+
+# вывод arp таблицы по ip интерфейса
+function get_ipif_arp {
+    ipif_ip=$1
+    # iso.3.6.1.2.1.4.20.1.2.62.182.50.1 = INTEGER: 5253
+    ipif_id=$(snmpget -v2c -c public $ipif_ip 1.3.6.1.2.1.4.20.1.2.$ipif_ip |
+              cut -d ":" -f 2 |
+              sed 's/^ //g')
+    # 1.3.6.1.2.1.4.22.1.2.5273.62.182.52.249 = Hex-STRING: 18 0F 76 26 B7 48
+    result=$(snmpwalk -v2c -c public $ipif_ip 1.3.6.1.2.1.4.22.1.2.$ipif_id |
+             sed "s/^.*$ipif_id.//;s/ = Hex-STRING: /\t/;s/ $//;s/ /:/g" |
+             # исключаем первую и последнюю строки - широковещательный и адрес сети
+             grep -v 'FF:FF:FF:FF:FF:FF')
+    echo "$result"
+}
+
+# mac адрес по ip из arp таблицы
+# по умолчанию префикс 24, для белых надо указывать, если сетка разбита
+function arp {
+    IFS=/ read -r ip prefix <<< "$1"
+    if [[ $prefix == "" ]]; then prefix=24; fi
+    ip=$(full_ip $ip)
+    mask=$(prefix2mask $prefix)
+    IFS=. read -r i1 i2 i3 i4 <<< "$ip"
+    IFS=. read -r m1 m2 m3 m4 <<< "$mask"
+    gw_ip="$((i1 & m1)).$((i2 & m2)).$((i3 & m3)).$(((i4 & m4)+1))"
+    if [[ "$i1.$i2" != "192.168" && $prefix == 24 ]]; then
+        echo -e "${RED}Using standart /24 prefix!$NO_COLOR"
+    fi
+    result=$(get_ipif_arp $gw_ip)
+    if [[ $ip != $gw_ip ]]; then
+        echo "$result" | grep $ip | cut -f 2
+    else
+        echo "$result"
+    fi
+
+
 }
 
 function show {
