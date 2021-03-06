@@ -1,11 +1,11 @@
 [Unit]
 Description=Backup configuration from switches
-User=troitskiy
 After=network-online.target
 Wants=network-online.target
 Wants=sw_backup.timer
 
 [Service]
+User=troitskiy
 Type=oneshot
 WorkingDirectory=/home/troitskiy/scripts/inkotel/
 ExecStart=/home/troitskiy/scripts/inkotel/sw_backup.sh
