@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily switches backup
+
+[Timer]
+Unit=sw_backup.service
+OnCalendar=*-*-* 08:00:00
+OnCalendar=*-*-* 21:00:00
+
+[Install]
+WantedBy=timers.target
