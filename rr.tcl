@@ -89,12 +89,6 @@ expect {
         send "delete iproute default 62.182.48.38\r"
         # добавляем маршрут по умолчанию
         send "create iproute default 62.182.48.$ro 1 primary\r"
-        # если 35, то ставим бекап 36, для 36 и 37 будет 35
-        if { $ro == 35 } {
-            send "create iproute default 62.182.48.36 1 backup\r"
-        } else {
-            send "create iproute default 62.182.48.35 1 backup\r"
-        }
         # по завершению сохраняемся и выходим
         expect "*#"
         send "save\n logout\r"
