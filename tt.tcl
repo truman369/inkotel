@@ -7,6 +7,9 @@
 # сделал для повторного использования другими скриптами
 # в этом случае скрипт возвращает полученные данные
 
+# TODO:
+# обработка ошибок (например, отсутствие конфигурационных файлов)
+
 # проверяем текущий файл: запущен он напрямую, или это ссылка
 # и выставляем соответствующие абсолютные пути для остальных файлов
 if { [file type $argv0] == "file" } {
@@ -68,66 +71,63 @@ exec echo $d Подключение к $ip >> /home/troitskiy/j_log
 # запускаем telnet сессию
 spawn telnet $pre$ip
 
-# определяем тип коммутатора (узловой или доступа) по названию модели
-# устанавливаем цвет текста приветствия в зависимости от типа
-set is_qtech false
-
-# TODO оптимизировать блок распознавания модели
-
-set prompt "*#"
-
+# определяем модель коммутатора по приветствию
 expect {
-    # костыль 1210
-    -re "DXS-1210-12SC login:" {
-        set username [lindex $login_data_node 0]
-        set password [lindex $login_data_node 1]
-        set color $yellow
-        set prompt "*>"
+    "DXS-1210-12SC Switch" {
+        set model "DXS-1210-12SC A1"
     }
-    # узловые коммутаторы
-    -re "DGS-3627G|DXS-3600-32S|DXS-1210-12SC 10GbE" {
-        set username [lindex $login_data_node 0]
-        set password [lindex $login_data_node 1]
-        set color $red
+    -re "\[A-Z]{3}-\[0-9]{4}\[^ ]*" {
+        set model "$expect_out(0,string)"
     }
-    # коммутаторы уровня доступа qtech
+    # у qtech нет названия модели, сразу логин
     "in:$" {
-        set is_qtech true
-        set username [lindex $login_data_access 0]
-        set password [lindex $login_data_access 1]
-        set color $blue
-
-    }
-    # коммутаторы уровня доступа dlink
-    -re "ame: *$" {
-        set username [lindex $login_data_access 0]
-        set password [lindex $login_data_access 1]
-        set color $green
+        set model "QSW-2800-28T-AC"
     }
     # коммутатор не доступен
     timeout {
         send_error ">>> timed out while connecting\n"
         exit 1
     }
+} 
+
+# задаем пароли в зависимости от модели
+switch -regexp -- $model {
+    {DGS-3627G|DXS-3600-32S|DXS-1210-12SC} {
+        set username [lindex $login_data_node 0]
+        set password [lindex $login_data_node 1]
+        set color $red
+    }
+    default {
+        set username [lindex $login_data_access 0]
+        set password [lindex $login_data_access 1]
+        set color $green
+    }
+}
+
+# задаем конец строки по модели
+switch -regexp -- $model {
+    {3627G|3600|3000|3200|3028|3026|3120} {
+        set endline "\n\r"
+    }
+    {1210|QSW} {
+        set endline "\r\n"
+    }
+    {3526} {
+        set endline "\r\n\r"
+    }
+}
+
+# строка приветствия
+if {$model == "DXS-1210-12SC A1"} {
+    set prompt "*>"
+} else {
+    set prompt "*#"
 }
 
 # логинимся
 send "$username\r"
-# заодно смотрим, какое окончание строки на этой модели коммутатора
-expect {
-    -re "\n\r(.*)ord:" {
-        set endline "\n\r"
-    }
-    -re "\r\n(.*)ord:" {
-        set endline "\r\n"
-    }
-}
+expect "ord:"
 send "$password\r"
-
-# костыль 1210
-if { $prompt == "*>"} {
-    set endline "\r\n"
-}
 
 # если приветствие с решеткой, то передаем управление пользователю
 # если снова предлагают ввести username или login, то пароль не подошел
@@ -143,68 +143,54 @@ expect {
             foreach command $commands {
                 set command [string trimleft $command]
                 send "$command\r"
-                if {$is_qtech == true} {
-                    expect {
-                        # находимся в конфигурационном режиме
-                        "*)#" {
-                            expect "*"
-                        }
-                        # ввод команды
-                        "$command$endline" {
-                            expect {
-                                # добавляем каждую строку вывода в output
-                                "*$endline" {
-                                    append output "$expect_out(buffer)"
-                                    exp_continue
-                                }
-                                # если многостраничный вывод
-                                -ex "--More--" {
-                                    send -- " "
-                                    exp_continue
-                                }
-                                # подтверждение сохранения
-                                "Y/N]:" {
-                                    send "y\r"
-                                    exp_continue
-                                }
-                                # пока не встретим решетку
-                                "$prompt" {}
-                            }
-                        }
+                expect {
+                    # если перешли в конфигурационный режим
+                    # ничего не делаем, ждем следующую команду
+                    "*)#" {
+                        expect "*"
                     }
-                } else {
-                    # D-LINK
-                    # пропускаем две строки: первая - сама команда
-                    # вторая - подтверждение команды на коммутаторе
-                    # с концом строки не очень ясно на разных моделях
-                    expect -re "$command\(\r)?$endline"
-                    expect -re "(\r)?($endline)+"
-                    # оставшееся записываем в вывод построчно до решетки
-                    expect {
-                        "*$endline" {
-                            append output "$expect_out(buffer)"
-                            exp_continue
+                    # ввод команды. $endline в конце работает не везде
+                    # на 3600, например, идет комбинация, поэтому так
+                    -re "$command\(\r)*(\n)*(\r)*" {
+                        # добавляем каждую строку вывода в output
+                        expect {
+                            "*$endline" {
+                                append output "$expect_out(buffer)"
+                                exp_continue
+                            }
+                            # многостраничный вывод
+                            "All" {
+                                send "a"
+                                exp_continue
+                            }
+                            # без -ex ругается на неправильный флаг
+                            # т.к. -- используется для передачи параметров
+                            -ex "--More--" {
+                                send -- " "
+                                exp_continue
+                            }
+                            # просмотр состояния
+                            "Refresh" {
+                                send "q"
+                                exp_continue
+                            }
+                            # подтверждение сохранения
+                            -nocase "y/n]:" {
+                                send "y\r"
+                                exp_continue
+                            }
+                            # подтверждение загрузки по tftp на DXS
+                            "]?" {
+                                send "\r"
+                                exp_continue
+                            }
+                            "$prompt" {}
                         }
-                        # многостраничный вывод
-                        "All" {
-                            send "a"
-                            exp_continue
-                        }
-                        # просмотр состояния
-                        "Refresh" {
-                            send "q"
-                            exp_continue
-                        }
-                        # подтверждение загрузки по tftp на DXS
-                        "]?" {
-                            send "\r"
-                            exp_continue
-                        }
-                        "$prompt" {}
                     }
                 }
             }
             send "logout\r"
+        # если параметров нет, выводим приветствие и передаем управление пользователю
         } else {
             set location [exec $basedir/sw.sh $ip get_sw_location]
             send_user "Connected to $color$ip$no_color $location$endline"
@@ -216,4 +202,5 @@ expect {
         exit 1
     }
 }
+# вывод ответа команд
 send_user $output
