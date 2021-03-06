@@ -281,7 +281,7 @@ function save {
     ip=$1
     model=$(get_sw_model $ip)
     if [[ "$model" =~ "QSW".* || "$model" =~ .*"3600".* ]]; then
-        commands="copy run st; y"
+        commands="copy run st"
     else
         commands="save"
     fi
