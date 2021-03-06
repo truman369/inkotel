@@ -59,10 +59,16 @@ if { [regexp {\-} $last_arg] } {
 
 # константы для цветов
 set no_color "\033\[0m"
-set red "\033\[1;31m"
-set green "\033\[1;32m"
-set yellow "\033\[1;33m"
-set blue "\033\[1;36m"
+set red "\033\[31m"
+set boldred "\033\[1;31m"
+set green "\033\[32m"
+set boldgreen "\033\[1;32m"
+set yellow "\033\[33m"
+set boldyellow "\033\[1;33m"
+set blue "\033\[34m"
+set boldblue "\033\[1;34m"
+set cyan "\033\[36m"
+set boldcyan "\033\[1;36m"
 set color $no_color
 
 # параметром передается ip адрес
@@ -106,13 +112,20 @@ switch -regexp -- $model {
     {DGS-3627G|DXS-3600-32S|DXS-1210-12SC} {
         set username [lindex $login_data_node 0]
         set password [lindex $login_data_node 1]
-        set color $red
     }
     default {
         set username [lindex $login_data_access 0]
         set password [lindex $login_data_access 1]
-        set color $green
     }
+}
+
+# цвета в строке приветствия, чтобы отличать важность коммутатора
+switch -regexp -- $model {
+    {3600} { set color $boldred }
+    {3627G} { set color $boldyellow }
+    {3120} { set color $boldgreen }
+    {1210-12SC} { set color $boldblue }
+    default { set color $green }
 }
 
 # задаем конец строки по модели
@@ -205,7 +218,7 @@ expect {
         # если параметров нет, выводим приветствие и передаем управление пользователю
         } else {
             set location [exec $basedir/sw.sh $ip get_sw_location]
-            send_user "Connected to $color$ip$no_color $location$endline"
+            send_user "$yellow$model$no_color \[$cyan$ip$no_color\] $color$location$no_color$endline"
             interact
         }
     }
