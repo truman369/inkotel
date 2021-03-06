@@ -43,8 +43,19 @@ set output ""
 #отключаем стандартный вывод
 log_user 0
 
-# для отладки
-# exp_internal 1
+# параметры: -d - режим отладки, -v - включаем стандартный вывод
+# удаляем последний аргумент и уменьшаем переменную с числом аргументов
+set last_arg [lindex $argv end]
+if { [regexp {\-} $last_arg] } {
+    set argv [lreplace $argv end end]
+    incr argc -1
+    if { [regexp {d} $last_arg] } {
+        exp_internal 1
+    }
+    if { [regexp {v} $last_arg] } {
+        log_user 1
+    }
+}
 
 # константы для цветов
 set no_color "\033\[0m"
@@ -141,6 +152,7 @@ expect {
         if { $argc > 1 } {
             set commands [split [lindex $argv 1] ";"]
             foreach command $commands {
+                # убираем пробелы и табуляции в начале команды
                 set command [string trimleft $command]
                 send "$command\r"
                 expect {
