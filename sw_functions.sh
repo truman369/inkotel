@@ -221,7 +221,7 @@ function arp {
     fi
     result=$(get_ipif_arp $gw_ip)
     if [[ $ip != $gw_ip ]]; then
-        echo "$result" | grep $ip | cut -f 2
+        echo "$result" | grep -w "$ip" | cut -f 2
     else
         echo "$result"
     fi
