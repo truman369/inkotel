@@ -3,9 +3,13 @@
 # все файлы ищем относительно директории запуска файла
 basedir=$(dirname $(realpath $0))
 
-ipdir="$basedir/config/ip/"
+# общие функции и константы
+source $basedir/common.sh
+
 # библиотека функций для работы с коммутаторами
 source $basedir/sw_functions.sh
+
+ipdir="$basedir/config/ip/"
 
 # если есть параметры, то запускаем сразу нужную функцию и выходим
 if [[ "$#" > 0 ]]; then
