@@ -10,7 +10,7 @@ cookie="$basedir/config/ab.cookie"
 
 # нахождение номера договора по ip адресу
 function find {
-    ip=$1
+    ip=$(full_ip $1)
     result="not found"
     # сначала делаем поиск по ip, т.к. в серой базе поиск идет по частичному совпадению
     # может вылезти несколько договоров: например, для 2 в последнем октете 
@@ -22,14 +22,21 @@ function find {
                grep -oE "[0-9]{5}</td>" |
                sed 's/<\/td>//g'`
     for contract in $contracts; do
-        contract_ips=`curl -s -d "nome_dogo=$contract" -d "go=1" "$base_url/bil.php" |
-                      grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"`
+        contract_ips=$(ips $contract)
         for contract_ip in $contract_ips; do
             if [ $contract_ip == $ip ]; then
                 result=$contract
             fi
         done
     done
+    echo "$result"
+}
+
+# нахождение ip по номеру договора
+function ips {
+    contract=$1
+    result=`curl -s -d "nome_dogo=$contract" -d "go=1" "$base_url/bil.php" |
+            grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"`
     echo "$result"
 }
 
