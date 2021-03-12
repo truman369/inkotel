@@ -11,6 +11,9 @@ basedir=$(dirname $(realpath $0))
 # библиотека функций для работы с коммутаторами
 source $basedir/sw_functions.sh
 
+# общие функции и константы
+source $basedir/common.sh
+
 backup_file=$basedir/config/ip/backup.ip
 update_days=2
 git_dir=$basedir/config/backup/
@@ -24,8 +27,15 @@ fi
 ips=`cat $backup_file`
 
 for ip in $ips; do
-    backup $ip
+    echo "Backup $ip"
+    result=`backup $ip`
+    if [[ "$result" =~ "not" ]]; then
+        echo -e "${RED}Error:$NO_COLOR not supported"
+    elif [[ "$result" =~ "unsuccessful" ]]; then
+        echo -e "${RED}FAIL$NO_COLOR.....trying again"
+        backup $ip
+    fi
 done
 
 cur_date=`date +'%F %T'`
-git -C $git_dir commit -am "Routine script at $cur_date"
+git -C $git_dir commit -am "Backup routine script at $cur_date"
