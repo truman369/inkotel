@@ -321,23 +321,31 @@ function backup {
     ip=$(full_ip $1)
     model=$(get_sw_model $ip)
     net=`echo $ip | cut -d "." -f 3`
-    backup_dir="cfg/backup/"
+    backup_dir="cfg/backup"
     server="192.168.$net.250"
     case $model in
         "DES-3026" )
-            commands="upload configuration $server cfg/backup/$ip.cfg"
+            commands="upload configuration $server $backup_dir/$ip.cfg"
         ;;
         "DGS-3000"* | "DGS-3627G" | "DGS-3120"* | *"C1" )
-            commands="upload cfg_toTFTP $server dest_file cfg/backup/$ip.cfg"
+            commands="upload cfg_toTFTP $server dest_file $backup_dir/$ip.cfg"
         ;;
         "DES-3526" | "DES-3028G" | "DES-3200"* | "DGS-1210"* )
-            commands="upload cfg_toTFTP $server cfg/backup/$ip.cfg"
+            commands="upload cfg_toTFTP $server $backup_dir/$ip.cfg"
         ;;
         "DXS-3600-32S" )
-            commands="copy running-config tftp: //$server/cfg/backup/$ip.cfg"
+            commands="copy running-config tftp: //$server/$backup_dir/$ip.cfg"
         ;;
         "QSW"* )
-            commands="copy running-config tftp://$server/cfg/backup/$ip.cfg"
+            commands="copy running-config tftp://$server/$backup_dir/$ip.cfg"
+        ;;
+        "DXS-1210-12SC" )
+            if [[ "$ip" == "192.168.57.1" ]]; then
+                commands="copy running-config tftp://$server/$backup_dir/$ip.cfg"
+            else
+                # у DXS-1210-12SC A1 конфиг в бинарном формате
+                commands="copy startup-config tftp://$server/$backup_dir/$ip.bin"
+            fi
         ;;
         * )
             commands=""
@@ -346,7 +354,6 @@ function backup {
     if [[ $commands == "" ]]; then
         echo "$ip: $model not supported"
     else
-        echo "Backup $ip"
         send_commands "$ip" "$commands"
     fi
 }
