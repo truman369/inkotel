@@ -101,9 +101,3 @@ expect {
 }
 # отображаем обновленный список маршрутов
 send_user [exec $basedir/show_iproute_l3.sh]
-
-# задаем текущую дату и пишем лог в журнал
-set d [exec date +%T]
-exec echo $d Смена маршрута $ip $ro >> /home/troitskiy/j_log
-
-

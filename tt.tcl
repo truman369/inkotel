@@ -82,10 +82,6 @@ if {[regexp {^(\d+)\.(\d+)$} $ip match]} {
     set pre ""
 }
 
-# задаем текущую дату и пишем лог в журнал
-set d [exec date +%T]
-exec echo $d Подключение к $ip >> /home/troitskiy/j_log
-
 # запускаем telnet сессию
 spawn telnet $pre$ip
 
