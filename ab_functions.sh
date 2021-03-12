@@ -74,6 +74,7 @@ function auth {
 
 function show {
     contract=$1
+    ips=$(ips $contract)
     id=$(get_id $contract)
     result=`curl -s --cookie $cookie --get -d "id_aabon=$id" "$base_url/index.php" |
             iconv -f "cp1251"`
@@ -85,16 +86,17 @@ function show {
     # дальше лютые костыли
     street=`echo "$result" |
             grep -A 1 "ulitsa" |
-            grep -oE "^.{100}" |
-            grep -oE "\">.*</" |
-            sed 's/["><\/]//g;s/ *$//g'`
+            grep -oE ">.*</option><option value=\"1-ая Заводская" |
+            cut -d '<' -f 1 |
+            sed 's/^>//;s/ *$//'`
     IFS=";"
-    read name house room sw_ip port length <<< `echo "$result" |
+    read name organization house room sw_ip port length <<< `echo "$result" |
         grep "input size=" |
-        egrep "fio|dom|kvartira|loyalnost|port|dlina_cab" |
+        egrep "fio|organizatsiya|dom|kvartira|loyalnost|port|dlina_cab" |
         awk -F'[="]' -v ORS=';' '{print $12}'`
 
-    echo -e "$YELLOW$contract$NO_COLOR $BLUE$street $house - $room$NO_COLOR"
-    echo -e "$BLUE$name$NO_COLOR"
-    echo -e "$GREEN$sw_ip$NO_COLOR $YELLOW$port$NO_COLOR"
+    echo -e "$YELLOW$contract$NO_COLOR $BLUE$name $organization$NO_COLOR"
+    echo -e "$CYAN$ips$NO_COLOR"
+    echo -e "$BLUE$street $house - $room$NO_COLOR"
+    echo -e "$GREEN$sw_ip$NO_COLOR $YELLOW$port$NO_COLOR $MAGENTA$length$NO_COLOR"
 }
