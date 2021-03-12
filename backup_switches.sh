@@ -8,7 +8,6 @@
 # все файлы ищем относительно директории запуска файла
 basedir=$(dirname $(realpath $0))
 
-ipdir="$basedir/config/ip/"
 # библиотека функций для работы с коммутаторами
 source $basedir/sw_functions.sh
 
@@ -18,6 +17,8 @@ git_dir=$basedir/config/backup/
 
 if [[ ("$#" > 0) && ($1 == "--update") ]]; then
     echo "SELECT INET_NTOA (ip_address) AS ip FROM switches WHERE datediff(now(), last_update) < $update_days ORDER BY last_update ASC;" | mysql -u sw sw_info | tail -n +2 > $backup_file
+    echo "Updated: $backup_file"
+    exit
 fi
 
 ips=`cat $backup_file`
