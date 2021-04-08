@@ -38,4 +38,5 @@ for ip in $ips; do
 done
 
 cur_date=`date +'%F %T'`
+git -C $git_dir add .
 git -C $git_dir commit -am "Backup routine script at $cur_date"
