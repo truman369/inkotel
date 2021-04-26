@@ -11,7 +11,7 @@
 function get_sw_model {
     ip=$1
     echo `snmpget -v2c -c public $ip iso.3.6.1.2.1.1.1.0 |
-          grep -oE "[A-Z]{3}-[0-9]{4}[^ ]*" |
+          grep -oE "[A-Z]{3}-[0-9]{1,4}[^ ]*" |
           sed 's/"//g'`
 }
 
