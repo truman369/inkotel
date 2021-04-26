@@ -140,6 +140,9 @@ function get_port_state {
 function send_commands {
     ip=$1; shift; commands=$@
     # удаляем последнюю точку с запятой
+    # TODO: протестировать на разных моделях, действительно ли это нужно делать
+    # на gpon LTP наоборот не срабатывает одна команда, если в конце нет символа ;
+    # в причинах не разбирался, пока сделал костыль в виде ;;
     commands=`echo $commands | sed 's/;$//'`
     if [[ $commands > 0 ]]; then
         # echo $commands
@@ -326,6 +329,12 @@ function backup {
         ;;
         "QSW"* )
             commands="copy running-config tftp://$server/$backup_dir/$ip.cfg"
+        ;;
+        # у LTP команда срабатывает, только когда в самом конце символ ;
+        # т.к. у меня последний такой символ обрезается, добавил костыль ;;
+        # TODO: разобраться, почему так происходит
+        "LTP"* )
+            commands="copy fs://config tftp://$server/$backup_dir/$ip.cfg;;"
         ;;
         "DXS-1210-12SC" )
             if [[ "$ip" == "192.168.57.1" ]]; then
