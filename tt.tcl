@@ -93,6 +93,10 @@ expect {
     -re "\[A-Z]{3}-\[0-9]{4}\[^ ]*" {
         set model "$expect_out(0,string)"
     }
+    # gpon eltex
+    "LTP-8X" {
+        set model "LTP-8X"
+    }
     # у qtech нет названия модели, сразу логин
     "in:$" {
         set model "QSW-2800-28T-AC"
@@ -122,6 +126,7 @@ switch -regexp -- $model {
     {3627G} { set color $boldyellow }
     {3120} { set color $boldgreen }
     {1210-12SC} { set color $boldblue }
+    {LTP} { set color $boldcyan }
     default { set color $green }
 }
 
@@ -130,7 +135,7 @@ switch -regexp -- $model {
     {3627G|3600|3000|3200|3028|3026|3120} {
         set endline "\n\r"
     }
-    {1210|QSW} {
+    {1210|QSW|LTP} {
         set endline "\r\n"
     }
     {3526} {
