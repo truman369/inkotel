@@ -73,7 +73,7 @@ function auth {
 }
 
 function show {
-    contract=$1
+    contract=$1; params=$2;
     ips=$(ips $contract)
     id=$(get_id $contract)
     result=`curl -s --cookie $cookie --get -d "id_aabon=$id" "$base_url/index.php" |
@@ -94,9 +94,15 @@ function show {
         grep "input size=" |
         egrep "fio|organizatsiya|dom|kvartira|loyalnost|port|dlina_cab" |
         awk -F'[="]' -v ORS=';' '{print $12}'`
-
-    echo -e "$YELLOW$contract$NO_COLOR $BLUE$name $organization$NO_COLOR"
-    echo -e "$CYAN$ips$NO_COLOR"
-    echo -e "$BLUE$street $house - $room$NO_COLOR"
-    echo -e "$GREEN$sw_ip$NO_COLOR $YELLOW$port$NO_COLOR $MAGENTA$length$NO_COLOR"
+    case $params in
+    "sw")
+        echo "$sw_ip $port"
+        ;;
+    *)
+        echo -e "$YELLOW$contract$NO_COLOR $BLUE$name $organization$NO_COLOR"
+        echo -e "$CYAN$ips$NO_COLOR"
+        echo -e "$BLUE$street $house - $room$NO_COLOR"
+        echo -e "$GREEN$sw_ip$NO_COLOR $YELLOW$port$NO_COLOR $MAGENTA$length$NO_COLOR"
+        ;;
+    esac
 }
