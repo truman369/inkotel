@@ -110,7 +110,7 @@ expect {
 
 # задаем пароли в зависимости от модели
 switch -regexp -- $model {
-    {DGS-3627G|DXS-3600-32S|DXS-1210-12SC} {
+    {DGS-3627G|DXS} {
         set username [lindex $login_data_node 0]
         set password [lindex $login_data_node 1]
     }
@@ -125,7 +125,7 @@ switch -regexp -- $model {
     {3600} { set color $boldred }
     {3627G} { set color $boldyellow }
     {3120} { set color $boldgreen }
-    {1210-12SC} { set color $boldblue }
+    {DXS-1210} { set color $boldblue }
     {LTP} { set color $boldcyan }
     default { set color $green }
 }

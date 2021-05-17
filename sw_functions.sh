@@ -312,7 +312,12 @@ function backup {
     ip=$(full_ip $1)
     model=$(get_sw_model $ip)
     net=`echo $ip | cut -d "." -f 3`
-    backup_dir="cfg/backup"
+    # TODO: разобраться с багом, протестировать на других длинных командах
+    # На модели DXS-1210-28S выявился баг, когда путь+имя больше 25 символов
+    # \r\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C$\u001b[0K
+    # внутри имени во время ответа коммутатора, из-за этого не отрабатывает expect
+    # поэтому временно укорочен путь с cfg/backup до backup
+    backup_dir="backup"
     server="192.168.$net.250"
     case $model in
         "DES-3026" )
@@ -324,7 +329,7 @@ function backup {
         "DES-3526" | "DES-3028G" | "DES-3200"* | "DGS-1210"* )
             commands="upload cfg_toTFTP $server $backup_dir/$ip.cfg"
         ;;
-        "DXS-3600-32S" )
+        "DXS-3600-32S" | "DXS-1210-28S" )
             commands="copy running-config tftp: //$server/$backup_dir/$ip.cfg"
         ;;
         "QSW"* )
