@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+git_dir=$basedir/config/backup/
+
 # константы для цветов
 NO_COLOR="\e[39m"
 GRAY="\e[90m"

@@ -16,7 +16,6 @@ source $basedir/common.sh
 
 backup_file=$basedir/config/ip/backup.ip
 update_days=2
-git_dir=$basedir/config/backup/
 
 if [[ ("$#" > 0) && ($1 == "--update") ]]; then
     echo "SELECT INET_NTOA (ip_address) AS ip FROM switches WHERE datediff(now(), last_update) < $update_days ORDER BY last_update ASC;" | mysql -u sw sw_info | tail -n +2 > $backup_file
