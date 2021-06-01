@@ -128,6 +128,18 @@ function get_ports_vlan {
 # проверка статуса порта
 function get_port_state {
     ip=$1; port=$2
+    model=$(get_sw_model $ip)
+    # у qtech ifAdminStatus показывает одно и то же, если просто нет линка
+    # поэтому проверяем через консоль
+    if [[ "$model" =~ "QSW".* ]]; then
+        if [[ "$(send_commands $ip "sh int eth 1/$port")" =~ "administratively down" ]]; then
+            echo "disabled"
+        else
+            echo "enabled"
+        fi
+        exit
+    fi
+    # все остальные
     if [[ `snmpget -v2c -c public $ip 1.3.6.1.2.1.2.2.1.7.$port | cut -d " " -f 4` = 1 ]]; then
         echo "enabled"
     else
