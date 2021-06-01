@@ -64,12 +64,31 @@ function get_id {
 function auth {
     # логин в файле должен быть закодирован в cp1251, например, %D2%F0%EE%E8%F6%EA%E8%E9
     read user pass <<< $(cat $ab_secret)
-    result=`curl -s --cookie-jar $cookie \
+    result=$(curl -s --cookie-jar $cookie \
                  -d "username=$user" \
                  -d "password=$pass" \
                  -d "temp_user_pass=1" \
-                 "$base_url/index.php"`
-    # echo "$result"
+                 "$base_url/index.php" |
+                 iconv -f "cp1251")
+    if [[ "$result" =~ "Кто ты?" ]]; then
+        echo "Auth error"
+    else
+        echo "OK"
+    fi
+}
+
+# проверка авторизации
+function check_auth {
+    result=$(curl -s --cookie $cookie "$base_url/index.php" | iconv -f "cp1251")
+    if [[ "$result" =~ "Кто ты?" ]]; then
+        result=$(auth)
+    else
+        result="OK"
+    fi
+    if [[ "$result" != "OK" ]]; then
+        echo $result
+        exit 1
+    fi
 }
 
 # выборка данных из серой базы
@@ -77,14 +96,11 @@ function get {
     contract=$1; shift; params=$@;
     ips=$(ips $contract)
     id=$(get_id $contract)
+    # проверка авторизации
+    check_auth
+    # дальше лютые костыли
     result=`curl -s --cookie $cookie --get -d "id_aabon=$id" "$base_url/index.php" |
             iconv -f "cp1251"`
-    # проверка авторизации
-    if [[ "$result" =~ "Кто ты?" ]]; then
-        echo "Access denied"
-        exit
-    fi
-    # дальше лютые костыли
     street=`echo "$result" |
             grep -A 1 "ulitsa" |
             grep -oE ">.*</option><option value=\"1-ая Заводская" |
