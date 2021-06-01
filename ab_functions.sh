@@ -111,6 +111,7 @@ function get {
         grep "input size=" |
         egrep "fio|organizatsiya|dom|kvartira|loyalnost|port|dlina_cab" |
         awk -F'[="]' -v ORS=';' '{print $12}'`
+    sw_ip=$(full_ip $sw_ip)
     IFS=' '
     if [[ $params ]]; then
         for p in $params; do
