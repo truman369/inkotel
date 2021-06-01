@@ -11,6 +11,6 @@ source $basedir/ab_functions.sh
 
 # если есть параметры, то запускаем сразу нужную функцию и выходим
 if [[ "$#" > 0 ]]; then
-    $func $@
+    $@
     exit
 fi
