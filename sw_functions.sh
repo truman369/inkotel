@@ -126,7 +126,6 @@ function get_ports_vlan {
 }
 
 # проверка статуса порта
-
 function get_port_state {
     ip=$1; port=$2
     if [[ `snmpget -v2c -c public $ip 1.3.6.1.2.1.2.2.1.7.$port | cut -d " " -f 4` = 1 ]]; then
@@ -134,6 +133,35 @@ function get_port_state {
     else
         echo "disabled"
     fi
+}
+
+# включение/выключение порта
+function set_port_state {
+    ip=$1; port=$2; state=$3;
+    # чтобы пробелы в комментарии считались
+    shift 3; comment=$@
+    model=$(get_sw_model $ip)
+    commands=""
+    if [[ "$model" =~ "QSW".* ]]; then
+        commands+="conf t;"
+        commands+="int eth 1/$port;"
+        if [[ $state =~ ^e ]]; then
+            commands+="no shutdown;"
+        elif [[ $state =~ ^d ]]; then
+            commands+="shutdown;"
+        fi
+        if [[ $comment ]]; then
+            commands+="description $comment;"
+        else
+            commands+="no description;"
+        fi
+        commands+="end;"
+    elif [[ "$model" =~ .*"3026"|"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
+        commands+="conf ports $port st $state desc \"$comment\""
+    else
+        echo "$ip: $model not supported"
+    fi
+    send_commands "$ip" "$commands"
 }
 
 # построчная отправка команд через tt.tcl 

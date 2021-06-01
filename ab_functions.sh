@@ -72,8 +72,9 @@ function auth {
     # echo "$result"
 }
 
-function show {
-    contract=$1; params=$2;
+# выборка данных из серой базы
+function get {
+    contract=$1; shift; params=$@;
     ips=$(ips $contract)
     id=$(get_id $contract)
     result=`curl -s --cookie $cookie --get -d "id_aabon=$id" "$base_url/index.php" |
@@ -90,19 +91,19 @@ function show {
             cut -d '<' -f 1 |
             sed 's/^>//;s/ *$//'`
     IFS=";"
-    read name organization house room sw_ip port length <<< `echo "$result" |
+    read name organization house room sw_ip port cable <<< `echo "$result" |
         grep "input size=" |
         egrep "fio|organizatsiya|dom|kvartira|loyalnost|port|dlina_cab" |
         awk -F'[="]' -v ORS=';' '{print $12}'`
-    case $params in
-    "sw")
-        echo "$sw_ip $port"
-        ;;
-    *)
+    IFS=' '
+    if [[ $params ]]; then
+        for p in $params; do
+            echo "${!p}"
+        done
+    else
         echo -e "$YELLOW$contract$NO_COLOR $BLUE$name $organization$NO_COLOR"
         echo -e "$CYAN$ips$NO_COLOR"
         echo -e "$BLUE$street $house - $room$NO_COLOR"
         echo -e "$GREEN$sw_ip$NO_COLOR $YELLOW$port$NO_COLOR $MAGENTA$length$NO_COLOR"
-        ;;
-    esac
+    fi
 }
