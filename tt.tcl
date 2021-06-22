@@ -83,7 +83,7 @@ if {[regexp {^(\d+)\.(\d+)$} $ip match]} {
 }
 
 # увеличенный таймаут для тормозных коммутаторов
-set timeout 30
+set timeout 45
 
 # запускаем telnet сессию
 spawn telnet $pre$ip
