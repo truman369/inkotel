@@ -107,7 +107,7 @@ function get {
             cut -d '<' -f 1 |
             sed 's/^>//;s/ *$//'`
     IFS=";"
-    read name organization house room sw_ip port cable <<< `echo "$result" |
+    read name organization house room sw_ip port length <<< `echo "$result" |
         grep "input size=" |
         egrep "fio|organizatsiya|dom|kvartira|loyalnost|port|dlina_cab" |
         awk -F'[="]' -v ORS=';' '{print $12}'`
