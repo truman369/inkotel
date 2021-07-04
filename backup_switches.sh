@@ -38,4 +38,4 @@ done
 
 cur_date=`date +'%F %T'`
 git -C $git_dir add .
-git -C $git_dir commit -am "Backup routine script at $cur_date"
+git -C $git_dir commit -am "Automatic backup at $cur_date" --author "Backup routine script <robot@truman.network>"
