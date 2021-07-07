@@ -23,3 +23,9 @@ function full_ip {
     fi
     echo "$pre$ip"
 }
+
+# проверка, что значение содержится в списке
+function in_list {
+    value=$1; shift; list=$@
+    [[ $list =~ (^|[[:space:]])$value($|[[:space:]]) ]] && return 0 || return 1
+}
