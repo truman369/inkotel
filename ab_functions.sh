@@ -109,7 +109,7 @@ function get {
     IFS=";"
     read name organization house room sw_ip port length <<< `echo "$result" |
         grep "input size=" |
-        egrep "fio|organizatsiya|dom|kvartira|loyalnost|port|dlina_cab" |
+        egrep -w "fio|organizatsiya|dom|kvartira|loyalnost|port|dlina_cab" |
         awk -F'[="]' -v ORS=';' '{print $12}'`
     sw_ip=$(full_ip $sw_ip)
     IFS=' '
