@@ -15,6 +15,7 @@ source $basedir/sw_functions.sh
 # блокировка абонента на порту
 function block {
     contract=$1
+    flag=$2 # флаг разблокировки
     # берем из серой базы коммутатор, порт, айпи адреса абонента
     # айпи адреса в конце, т.к. их может быть несколько
     read -d "\n" sw_ip port ips <<< `get $contract "sw_ip" "port" "ips"`
@@ -27,15 +28,23 @@ function block {
     else
         # проверяем, включен ли порт
         port_state=$(get_port_state $sw_ip $port)
-        if [[ $port_state == "disabled" ]]; then
-            result+="${YELLOW}Warning, port already disabled!$NO_COLOR"
-        elif [[ $port_state == "enabled" ]]; then
+        if [[ ( $port_state == "disabled" && $flag == "" ) || \
+                ( $port_state == "enabled" && $flag =~ ^u ) ]]; then
+            result+="${YELLOW}Warning, port already $port_state!$NO_COLOR"
+        elif [[ $port_state == "enabled" && $flag == "" ]]; then
             set_port_state $sw_ip $port "disable" "$contract BLOCKED $(date +'%F')"
             result+="${GREEN}Successfully blocked$NO_COLOR"
-            backup $sw_ip
-            git -C $git_dir add $sw_ip.cfg
-            git -C $git_dir commit -m "$contract block"
-            save $sw_ip
+            # backup $sw_ip
+            # git -C $git_dir add $sw_ip.cfg
+            # git -C $git_dir commit -m "$contract block"
+            # save $sw_ip
+        elif [[ $port_state == "disabled" && $flag =~ ^u ]]; then
+            set_port_state $sw_ip $port "enable"
+            result+="${GREEN}Successfully unblocked$NO_COLOR"
+            # backup $sw_ip
+            # git -C $git_dir add $sw_ip.cfg
+            # git -C $git_dir commit -m "$contract unblock"
+            # save $sw_ip
         else
             result+="${RED}Port state error!$NO_COLOR"
         fi
@@ -44,14 +53,22 @@ function block {
     echo -e "$result"
 }
 
-# проверяем параметры
-if [[ "$#" != 1 ]]; then
+function print_usage {
+    echo "Usage: $0 <contract_id> [unblock]"
+    echo "       $0 <path_to_file> [unblock]"
     exit
+}
+
+# проверяем параметры
+if [[ "$#" < 1 ]]; then
+    print_usage
 fi
 # параметр - номер договора
 if [[ $1 =~ ^[0-9]{5}$ ]]; then
-    block $1
+    block $1 $2
     exit
+else
+    print_usage
 fi
 
 # параметр - путь к файлу со списком договоров
