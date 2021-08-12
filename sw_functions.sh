@@ -308,7 +308,7 @@ function vlan {
 function save {
     ip=$1
     model=$(get_sw_model $ip)
-    if [[ "$model" =~ "QSW".* || "$model" =~ .*"3600".* ]]; then
+    if [[ "$model" =~ .*"QSW"|"3600"|"DXS-1210-28S".* ]]; then
         commands="copy run st"
     else
         commands="save"
