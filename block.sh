@@ -67,8 +67,6 @@ fi
 if [[ $1 =~ ^[0-9]{5}$ ]]; then
     block $1 $2
     exit
-else
-    print_usage
 fi
 
 # параметр - путь к файлу со списком договоров
@@ -78,6 +76,6 @@ if ! [[ $contracts > 0 ]]; then
     exit 1
 fi
 for c in $contracts; do
-    block $c
+    block $c $2
 done
 
