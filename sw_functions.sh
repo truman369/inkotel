@@ -168,8 +168,15 @@ function set_port_state {
             commands+="no description;"
         fi
         commands+="end;"
+    elif [[ "$model" =~ .*"3526".* ]]; then
+        commands+="conf ports $port st $state desc \"$comment\";"
     elif [[ "$model" =~ .*"3026"|"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
-        commands+="conf ports $port st $state desc \"$comment\""
+        commands+="conf ports $port st $state"
+        if [[ $comment ]]; then
+            commands+=" description \"$comment\";"
+        else
+            commands+=" clear_description;"
+        fi
     else
         echo "$ip: $model not supported"
     fi
