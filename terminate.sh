@@ -15,6 +15,8 @@ source $basedir/sw_functions.sh
 # очистка порта при расторжении договора
 function terminate {
     contract=$1
+    # файл лога вывода команд, сохраняется, если произошла ошибка
+    logfile="terminate_$contract.log"
     # файл для шаблонных ответов по заявкам
     if [[ $2 ]]; then
         resultfile=$2
@@ -65,14 +67,19 @@ function terminate {
                 commands+="config limited_multicast_addr ports $port ipv4 delete profile_id 1;"
                 commands+="config limited_multicast_addr ports $port ipv4 delete profile_id 2;"
                 commands+="config limited_multicast_addr ports $port ipv4 delete profile_id 3;"
-                result+="${GREEN}Successfully terminated$NO_COLOR "
-                echo "$contract Настройки на порту убрал," \
-                    "договор расторг. Выполнено." >> $resultfile
-                send_commands "$sw_ip" "$commands" \
-                && backup $sw_ip \
-                && git -C $git_dir add $sw_ip.cfg \
-                && git -C $git_dir commit -m "$contract termination" \
-                && save $sw_ip 1>/dev/null
+                if (send_commands "$sw_ip" "$commands" \
+                    && backup $sw_ip \
+                    && git -C $git_dir add $sw_ip.cfg \
+                    && git -C $git_dir commit -m "$contract termination" \
+                    && save $sw_ip)>$logfile
+                then
+                    result+="${GREEN}Successfully terminated$NO_COLOR "
+                    echo "$contract Настройки на порту убрал," \
+                        "договор расторг. Выполнено." >> $resultfile
+                    rm $logfile
+                else
+                    result+="${RED}Something went wrong! Saved log: $logfile$NO_COLOR "
+                fi
             fi
             result+="\n$CYAN$sw_ip ${YELLOW}port $CYAN$port "
             result+="${YELLOW}vlan $CYAN$vlan ${YELLOW}ip $CYAN$ip$NO_COLOR "
