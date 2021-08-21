@@ -163,7 +163,7 @@ function set_port_state {
         elif [[ $state =~ ^d ]]; then
             commands+="shutdown;"
         fi
-        if [[ $comment ]]; then
+        if [[ -n "$comment" ]]; then
             commands+="description $comment;"
         else
             commands+="no description;"
@@ -173,7 +173,7 @@ function set_port_state {
         commands+="conf ports $port st $state desc \"$comment\";"
     elif [[ "$model" =~ .*"3026"|"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
         commands+="conf ports $port st $state"
-        if [[ $comment ]]; then
+        if [[ -n "$comment" ]]; then
             commands+=" description \"$comment\";"
         else
             commands+=" clear_description;"
