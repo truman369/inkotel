@@ -31,3 +31,16 @@ function in_list {
     value=$1; shift; list=$@
     [[ $list =~ (^|[[:space:]])$value($|[[:space:]]) ]] && return 0 || return 1
 }
+
+# функция для подтверждения каких либо действий
+function agree(){
+    local agree
+    echo -e "Press ${YELLOW}[y]${NO_COLOR} to continue, any key to exit"
+    read -s -n 1 agree
+    if [[ $agree == "y" ]]; then
+        return 0
+    else
+        echo -e "Interrupted"
+        exit 0
+    fi
+}
