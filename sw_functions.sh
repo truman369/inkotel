@@ -9,7 +9,7 @@
 # функция вернет DES-3200-28
 
 function get_sw_model {
-    ip=$1
+    local ip=$1
     echo `snmpget -v2c -c public $ip iso.3.6.1.2.1.1.1.0 |
           grep -oE "[A-Z]{3}-[0-9]{1,4}[^ ]*" |
           sed 's/"//g'`
@@ -17,7 +17,7 @@ function get_sw_model {
 
 # получение максимального количества портов исходя из модели коммутатора
 function get_sw_max_ports {
-    ip=$1
+    local ip=$1
     echo `expr "$(get_sw_model $ip)" : '.*\([0-9][0-9]\)'`
 }
 
@@ -25,8 +25,8 @@ function get_sw_max_ports {
 # iso.3.6.1.2.1.1.6.0 = STRING: "ATS (operator)"
 
 function get_sw_location {
-    ip=$1
-    location=`snmpget -v2c -c public $ip iso.3.6.1.2.1.1.6.0 |
+    local ip=$1
+    local location=`snmpget -v2c -c public $ip iso.3.6.1.2.1.1.6.0 |
               cut -d ":" -f 2 |
               sed 's/^ //;s/"//g' |
               sed "s/'//g" |
@@ -42,7 +42,7 @@ function get_sw_location {
 # iso.3.6.1.2.1.4.21.1.7.0.0.0.0 = IpAddress: 62.182.48.36
 
 function get_sw_iproute {
-    ip=$1
+    local ip=$1
     echo `snmpget -v2c -c public $ip iso.3.6.1.2.1.4.21.1.7.0.0.0.0 |
           cut -d ":" -f 2 |
           grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"`
@@ -61,7 +61,8 @@ function get_sw_iproute {
 # а так возвращает пустой результат
 
 function get_ports_mask {
-    ip=$1; vlan=$2; unt=$3
+    local ip=$1; local vlan=$2; local unt=$3
+    local oid
     if [[ $unt =~ ^u.* ]]; then
         oid=4
         # untagged
@@ -82,7 +83,7 @@ function get_ports_mask {
 # iso.3.6.1.2.1.17.7.1.2.2.1.2.1013.0.8.161.43.219.45 = INTEGER: 2
 
 function get_mac_table {
-    ip=$1; port=$2; vlan=$3;
+    local ip=$1; local port=$2; local vlan=$3;
     snmpwalk -v2c -c public $ip 1.3.6.1.2.1.17.7.1.2.2.1.2.$vlan |
     egrep ": $port$" |
     cut -d " " -f 1 |
@@ -95,14 +96,14 @@ function get_mac_table {
 
 # список портов по vlan (tagged/untagged)
 function get_ports_vlan {
-    ip=$1; vlan=$2; tag=$3
-    max_ports=$(get_sw_max_ports $ip)
-    all_ports=$(get_ports_mask $ip $vlan)
-    unt_ports=$(get_ports_mask $ip $vlan "unt")
-    mask=0x80000000
+    local ip=$1; local vlan=$2; local tag=$3
+    local max_ports=$(get_sw_max_ports $ip)
+    local all_ports=$(get_ports_mask $ip $vlan)
+    local unt_ports=$(get_ports_mask $ip $vlan "unt")
+    local mask=0x80000000
     # обнуляем счетчики портов
-    untagged_ports=""
-    tagged_ports=""
+    local untagged_ports=""
+    local tagged_ports=""
     for i in `seq $max_ports`; do
         # перемножаем побитово, если маска совпала, проверяем тег
         if `let "all_ports & mask"`; then 
@@ -127,8 +128,8 @@ function get_ports_vlan {
 
 # проверка статуса порта
 function get_port_state {
-    ip=$1; port=$2
-    model=$(get_sw_model $ip)
+    local ip=$1; local port=$2
+    local model=$(get_sw_model $ip)
     # у qtech ifAdminStatus показывает одно и то же, если просто нет линка
     # поэтому проверяем через консоль
     if [[ "$model" =~ "QSW".* ]]; then
@@ -149,11 +150,11 @@ function get_port_state {
 
 # включение/выключение порта
 function set_port_state {
-    ip=$1; port=$2; state=$3;
+    local ip=$1; local port=$2; local state=$3;
     # чтобы пробелы в комментарии считались
-    shift 3; comment=$@
-    model=$(get_sw_model $ip)
-    commands=""
+    shift 3; local comment=$@
+    local model=$(get_sw_model $ip)
+    local commands=""
     if [[ "$model" =~ "QSW".* ]]; then
         commands+="conf t;"
         commands+="int eth 1/$port;"
@@ -185,7 +186,7 @@ function set_port_state {
 
 # построчная отправка команд через tt.tcl 
 function send_commands {
-    ip=$1; shift; commands=$@
+    local ip=$1; shift; local commands=$@
     # удаляем последнюю точку с запятой
     # TODO: протестировать на разных моделях, действительно ли это нужно делать
     # на gpon LTP наоборот не срабатывает одна команда, если в конце нет символа ;
@@ -199,7 +200,10 @@ function send_commands {
 
 # преобразование маски подсети из префикса
 function prefix2mask {
-    prefix=$1;
+    local prefix=$1;
+    local spacer
+    local bitmask
+    local mask
     for (( i=0; i < 32; i++ )); do
         if [[ $i -lt $prefix ]]; then
             bit=1
@@ -221,13 +225,13 @@ function prefix2mask {
 
 # вывод arp таблицы по ip интерфейса
 function get_ipif_arp {
-    ipif_ip=$1
+    local ipif_ip=$1
     # iso.3.6.1.2.1.4.20.1.2.62.182.50.1 = INTEGER: 5253
-    ipif_id=$(snmpget -v2c -c public $ipif_ip 1.3.6.1.2.1.4.20.1.2.$ipif_ip |
+    local ipif_id=$(snmpget -v2c -c public $ipif_ip 1.3.6.1.2.1.4.20.1.2.$ipif_ip |
               cut -d ":" -f 2 |
               sed 's/^ //g')
     # 1.3.6.1.2.1.4.22.1.2.5273.62.182.52.249 = Hex-STRING: 18 0F 76 26 B7 48
-    result=$(snmpwalk -v2c -c public $ipif_ip 1.3.6.1.2.1.4.22.1.2.$ipif_id |
+    local result=$(snmpwalk -v2c -c public $ipif_ip 1.3.6.1.2.1.4.22.1.2.$ipif_id |
              sed "s/^.*$ipif_id.//;s/ = Hex-STRING: /\t/;s/ $//;s/ /:/g" |
              # исключаем первую и последнюю строки - широковещательный и адрес сети
              grep -v 'FF:FF:FF:FF:FF:FF')
@@ -237,17 +241,19 @@ function get_ipif_arp {
 # mac адрес по ip из arp таблицы
 # по умолчанию префикс 24, для белых надо указывать, если сетка разбита
 function arp {
+    local ip
+    local prefix
     IFS=/ read -r ip prefix <<< "$1"
     if [[ $prefix == "" ]]; then prefix=24; fi
     ip=$(full_ip $ip)
-    mask=$(prefix2mask $prefix)
+    local mask=$(prefix2mask $prefix)
     IFS=. read -r i1 i2 i3 i4 <<< "$ip"
     IFS=. read -r m1 m2 m3 m4 <<< "$mask"
-    gw_ip="$((i1 & m1)).$((i2 & m2)).$((i3 & m3)).$(((i4 & m4)+1))"
+    local gw_ip="$((i1 & m1)).$((i2 & m2)).$((i3 & m3)).$(((i4 & m4)+1))"
     if [[ "$i1.$i2" != "192.168" && $prefix == 24 ]]; then
         echo -e "${RED}Using standart /24 prefix!$NO_COLOR"
     fi
-    result=$(get_ipif_arp $gw_ip)
+    local result=$(get_ipif_arp $gw_ip)
     if [[ $ip != $gw_ip ]]; then
         echo "$result" | grep -w "$ip" | cut -f 2
     else
@@ -256,7 +262,7 @@ function arp {
 }
 
 function show {
-    ip=$1
+    local ip=$1
     echo """
     ==============================
     IP:         $ip
@@ -270,9 +276,10 @@ function show {
 
 # TODO: возможность выбирать порты для настройки
 function vlan {
-    ip=$1; action=$2; shift 2; vlans=$@; commands=""
-    max_ports=$(get_sw_max_ports $ip)
-    model=$(get_sw_model $ip)
+    local ip=$1; local action=$2; shift 2
+    local vlans=$@; local commands=""
+    local max_ports=$(get_sw_max_ports $ip)
+    local model=$(get_sw_model $ip)
     if [[ "$model" =~ "QSW".* ]]; then
         commands+="conf t;"
         for vlan in $vlans; do
@@ -306,8 +313,9 @@ function vlan {
 }
 
 function save {
-    ip=$1
-    model=$(get_sw_model $ip)
+    local ip=$1
+    local model=$(get_sw_model $ip)
+    local commands
     if [[ "$model" =~ .*"QSW"|"3600"|"DXS-1210-28S".* ]]; then
         commands="copy run st"
     else
@@ -318,8 +326,9 @@ function save {
 }
 
 function vlan_change_unt {
-    ip=$1; port=$2; vlan_old=$3; vlan_new=$4
-    model=$(get_sw_model $ip)
+    local ip=$1; local port=$2; local vlan_old=$3; local vlan_new=$4
+    local model=$(get_sw_model $ip)
+    local commands
     echo "Processing $model $ip port $port vlan $vlan_old -> $vlan_new"
     if [[ "$model" =~ "QSW".* ]]; then
         commands="conf t;int eth 1/$port;switchport access vlan $vlan_new;end"
@@ -333,8 +342,8 @@ function vlan_change_unt {
 
 # функция нахождения ip по acl на передаваемых портах
 function get_acl {
-    ip=$1; shift; ports=$@;
-    model=$(get_sw_model $ip)
+    local ip=$1; shift; local ports=$@;
+    local model=$(get_sw_model $ip)
     if [[ "$model" =~ "QSW".* ]]; then
         for port in $ports; do
             acl=`send_commands "$ip" "sh am int eth 1/$port;" | grep ip-pool`
@@ -356,16 +365,17 @@ function get_acl {
 
 # сохранение настроек на tftp
 function backup {
-    ip=$(full_ip $1)
-    model=$(get_sw_model $ip)
-    net=`echo $ip | cut -d "." -f 3`
+    local ip=$(full_ip $1)
+    local model=$(get_sw_model $ip)
+    local net=`echo $ip | cut -d "." -f 3`
     # TODO: разобраться с багом, протестировать на других длинных командах
     # На модели DXS-1210-28S выявился баг, когда путь+имя больше 25 символов
     # \r\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C\u001b[C$\u001b[0K
     # внутри имени во время ответа коммутатора, из-за этого не отрабатывает expect
     # поэтому временно укорочен путь с cfg/backup до backup
-    backup_dir="backup"
-    server="192.168.$net.250"
+    local backup_dir="backup"
+    local server="192.168.$net.250"
+    local commands
     case $model in
         "DES-3026" )
             commands="upload configuration $server $backup_dir/$ip.cfg"

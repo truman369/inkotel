@@ -14,8 +14,9 @@ CYAN="\e[36m"
 
 # преобразование сокращенного ip адреса в полный
 function full_ip {
-    ip=$1
-    rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
+    local ip=$1
+    local rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
+    local result
     if [[ $ip =~ ^$rx\.$rx$ ]]; then
         result="192.168.$ip"
     elif [[ $ip =~ ^$rx\.$rx\.$rx\.$rx$ ]]; then
@@ -28,7 +29,7 @@ function full_ip {
 
 # проверка, что значение содержится в списке
 function in_list {
-    value=$1; shift; list=$@
+    local value=$1; shift; local list=$@
     [[ $list =~ (^|[[:space:]])$value($|[[:space:]]) ]] && return 0 || return 1
 }
 
