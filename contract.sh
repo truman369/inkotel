@@ -12,7 +12,13 @@ source $basedir/ab_functions.sh
 # библиотека функций для работы с коммутаторами
 source $basedir/sw_functions.sh
 
-# set -euo pipefail
+# TODO: убрать повторяющийся код
+#       вынести логирование из функций в оболочку
+#       сохранение и бекап сделать отключаемыми
+
+# set -euo pipefail  # <-- отключил, т.к. фейлится в terminate где read
+
+# debug
 # set -x
 
 function print_usage {
@@ -43,6 +49,7 @@ function terminate {
     # файл лога вывода команд, сохраняется, если произошла ошибка
     local logfile="terminate_$contract.log"
     # файл для шаблонных ответов по заявкам
+    local resultfile
     if [[ -n "$@" ]]; then
         resultfile=$@
     else
@@ -51,6 +58,7 @@ function terminate {
     local result="$YELLOW$contract$NO_COLOR: "
     # берем из серой базы коммутатор, порт, айпи адреса абонента
     # айпи адреса в конце, т.к. их может быть несколько
+    local sw_ip; local port; local ips
     read -d "\n" sw_ip port ips <<< `get $contract "sw_ip" "port" "ips"`
     # проверяем валидность данных из серой базы
     if [[ $sw_ip == "" || $port == "" ]]; then
@@ -113,16 +121,70 @@ function terminate {
     echo -e "$result"
 }
 
-function block(){
-    echo "block $1 params $@"
+# универсальная функция блокировки/разблокировки по номеру договора
+function change_port {
+    local state=$1; local contract=$2; shift 2;
+    # port description
+    local comment
+    # приставка для отображения в логах
+    local pre=""
+    if [[ -n "$@" ]]; then
+        comment=$@
+    elif [[ $state =~ ^d ]]; then
+        comment="$contract BLOCKED $(date +'%F')"
+    elif [[ $state =~ ^e ]]; then
+        pre="un"
+        comment=""
+    fi
+    # лог для ошибок
+    local logfile="blocking_$contract.log"
+    # берем из серой базы коммутатор, порт, айпи адреса абонента
+    # айпи адреса в конце, т.к. их может быть несколько
+    local sw_ip; local port; local ips
+    read -d "\n" sw_ip port ips <<< `get $contract "sw_ip" "port" "ips"`
+    # смотрим acl на порту коммутатора
+    local ip=$(get_acl $sw_ip $port)
+    local result="${YELLOW}${contract}${NO_COLOR}: "
+    # проверяем, чтобы айпишник совпадал в базе и на коммутаторе
+    if [[ $ips != *$ip* || $ip == "" ]]; then
+        result+="${RED}ACL error, need manual operations!${NO_COLOR}"
+    else
+        # проверяем, включен ли порт
+        local port_state=$(get_port_state $sw_ip $port)
+        if [[ -z "$port_state" ]]; then
+            result+="${RED}Port state error!${NO_COLOR}"
+        # get возвращает *abled, а для set нужно *able
+        elif [[ "$port_state" == "${state}d" ]]; then
+            result+="${YELLOW}Warning, port already ${port_state}!${NO_COLOR}"
+        else
+            if (set_port_state "$sw_ip" "$port" "$state" "$comment" \
+                && backup $sw_ip \
+                && git -C $git_dir add $sw_ip.cfg \
+                && git -C $git_dir commit -m "$contract ${pre}block" \
+                && save $sw_ip \
+                )>$logfile
+            then
+                result+="${GREEN}Successfully ${pre}blocked${NO_COLOR}"
+                rm $logfile
+            else
+                result+="${RED}Something went wrong! Saved log: ${YELLOW}${logfile}${NO_COLOR}"
+            fi
+        fi
+        result+="\n       ${CYAN}${sw_ip} port ${port}${NO_COLOR}"
+    fi
+    echo -e "$result"
 }
-function unblock(){
-    echo "unblock $1 params $@"
+
+# блокировка абонента на порту
+function block {
+    change_port "disable" $@
+}
+# разблокировка абонента на порту
+function unblock {
+    change_port "enable" $@
 }
 
-
-
-
+################################################################################
 
 # проверяем минимальное количество обязательных параметров
 if [[ $# < 2 || ($1 == "batch" && $# < 3) ]]; then
