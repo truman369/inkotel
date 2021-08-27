@@ -16,10 +16,11 @@ CYAN="\e[36m"
 function full_ip {
     local ip=$1
     local rx='([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
+    local prefix='(/[0-9]{1,2})?'
     local result
-    if [[ $ip =~ ^$rx\.$rx$ ]]; then
+    if [[ $ip =~ ^$rx\.$rx$prefix$ ]]; then
         result="192.168.$ip"
-    elif [[ $ip =~ ^$rx\.$rx\.$rx\.$rx$ ]]; then
+    elif [[ $ip =~ ^$rx\.$rx\.$rx\.$rx$prefix$ ]]; then
         result="$ip"
     else
         result=""

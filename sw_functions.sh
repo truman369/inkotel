@@ -203,6 +203,7 @@ function prefix2mask {
     local prefix=$1;
     local spacer
     local bitmask
+    local bit
     local mask
     for (( i=0; i < 32; i++ )); do
         if [[ $i -lt $prefix ]]; then
