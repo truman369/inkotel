@@ -189,7 +189,7 @@ expect {
                                 exp_continue
                             }
                             # многостраничный вывод
-                            "All" {
+                            -nocase "all" {
                                 send "a"
                                 exp_continue
                             }
