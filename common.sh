@@ -40,9 +40,10 @@ function agree(){
     echo -e "Press ${YELLOW}[y]${NO_COLOR} to continue, any key to exit"
     read -s -n 1 agree
     if [[ $agree == "y" ]]; then
+        echo -e "${GREEN}Confirmed${NO_COLOR}"
         return 0
     else
-        echo -e "Interrupted"
+        echo -e "${RED}Interrupted${NO_COLOR}"
         exit 0
     fi
 }
