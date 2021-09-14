@@ -92,6 +92,7 @@ function check_auth {
 }
 
 # выборка данных из серой базы
+# TODO: проверка полей коммутатора и порта (пустые, 0 0 ip)
 function get {
     local contract=$1; shift; local params=$@;
     local ips=$(ips $contract)
@@ -124,4 +125,10 @@ function get {
         echo -e "$BLUE$street $house - $room$NO_COLOR"
         echo -e "$GREEN$sw_ip$NO_COLOR $YELLOW$port$NO_COLOR $MAGENTA$length$NO_COLOR"
     fi
+}
+
+function terminate_contract {
+    local contract=$1
+    check_auth
+    curl -s --cookie $cookie -X POST -d "rastorg=$contract" "$base_url/index.php"
 }
