@@ -88,18 +88,35 @@ function terminate {
             local model=$(get_sw_model $sw_ip)
             local vlan=$(echo $ip | cut -d "." -f 3)
             local commands=""
-            if [[ ! "$model" =~ .*"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
+            if [[ ! "$model" =~ .*"3200-28"|"3000"|"3526"|"3028G"|"1210-28X/ME".* ]]; then
                 result+="${RED}Model $CYAN$model ${RED}not supported yet, "
                 result+="need manual operations!$NO_COLOR "
+                result+="\n$CYAN$sw_ip ${YELLOW}port $CYAN$port "
+                result+="${YELLOW}vlan $CYAN$vlan ${YELLOW}ip $CYAN$ip$NO_COLOR "
             else
                 commands+="config access_profile profile_id 10 delete access_id $port;"
                 commands+="config access_profile profile_id 20 delete access_id $port;"
                 commands+="config vlan $vlan del $port;"
                 commands+="config ports $port st d d \"FREE $contract TERMINATED $(date +'%F')\";"
-                commands+="config igmp_snooping multicast_vlan 1500 delete member_port $port;"
-                commands+="config limited_multicast_addr ports $port ipv4 delete profile_id 1;"
-                commands+="config limited_multicast_addr ports $port ipv4 delete profile_id 2;"
-                commands+="config limited_multicast_addr ports $port ipv4 delete profile_id 3;"
+                if [[ "$model" == "DES-3526" ]]; then
+                    local igmp_ports=$(send_commands "$sw_ip" "sh igmp_sn m" |
+                        grep "Member ports" |
+                        cut -d ':' -f 2 |
+                        sed 's/ //g;s/\r//')
+                    igmp_ports=$(iterate "$igmp_ports" | sed "s/$port//g;s/ /,/g;s/^,//;s/,$//;s/,,/,/g")
+                    commands+="config igmp_snooping multicast_vlan 1500 member_port $igmp_ports;"
+                    for i in $(seq 3); do
+                        commands+="config limited_multicast_addr ports $port delete multicast_range $i;"
+                    done
+                else
+                    commands+="config igmp_snooping multicast_vlan 1500 delete member_port $port;"
+                    for i in $(seq 3); do
+                        commands+="config limited_multicast_addr ports $port ipv4 delete profile_id $i;"
+                    done
+                fi
+                if [[ "$model" =~ .*"3000"|"1210-28X/ME".* ]]; then
+                    commands+="config bandwidth_control $port tx_rate 102400 rx_rate 102400;"
+                fi
                 if (send_commands "$sw_ip" "$commands" \
                     && backup $sw_ip \
                     && git -C $git_dir add $sw_ip.cfg \
@@ -114,8 +131,8 @@ function terminate {
                     result+="${RED}Something went wrong! Saved log: $logfile$NO_COLOR "
                 fi
             fi
-            result+="\n$CYAN$sw_ip ${YELLOW}port $CYAN$port "
-            result+="${YELLOW}vlan $CYAN$vlan ${YELLOW}ip $CYAN$ip$NO_COLOR "
+            # result+="\n$CYAN$sw_ip ${YELLOW}port $CYAN$port "
+            # result+="${YELLOW}vlan $CYAN$vlan ${YELLOW}ip $CYAN$ip$NO_COLOR "
         fi
     fi
     echo -e "$result"
