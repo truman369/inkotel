@@ -82,6 +82,8 @@ function terminate {
             result+="${YELLOW}Warning, port used by $CYAN$new_contract$NO_COLOR "
             echo "$contract На порту подключен абонент $new_contract." \
                 "Настройки убирать не требуется. Договор расторг. Выполнено." >> $resultfile
+            # расторгаем в серой базе
+            terminate_contract $contract
         # убираем настройки
         else
             # временные костыли, полностью переделать этот раздел!
@@ -127,6 +129,7 @@ function terminate {
                     echo "$contract Настройки на порту убрал," \
                         "договор расторг. Выполнено." >> $resultfile
                     rm $logfile
+                    terminate_contract $contract
                 else
                     result+="${RED}Something went wrong! Saved log: $logfile$NO_COLOR "
                 fi
