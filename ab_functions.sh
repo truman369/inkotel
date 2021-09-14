@@ -130,5 +130,5 @@ function get {
 function terminate_contract {
     local contract=$1
     check_auth
-    curl -s --cookie $cookie -X POST -d "rastorg=$contract" "$base_url/index.php"
+    local result=$(curl -s --cookie $cookie -X POST -d "rastorg=$contract" "$base_url/index.php")
 }
