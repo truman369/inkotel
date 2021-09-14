@@ -47,3 +47,24 @@ function agree(){
         exit 0
     fi
 }
+
+# функция для перечисления списков портов с сокращениями, например 1-2,5,7-10
+function iterate {
+    local result=""
+    IFS=','
+    for l in $1; do
+        # return default IFS value
+        IFS=$' \t\n'
+        local start=$(cut -d '-' -s -f 1 <<< $l)
+        local end=$(cut -d '-' -s -f 2 <<< $l)
+        if [[ $start ]]; then
+            for i in $(seq $start $end); do
+                result+="$i "
+            done
+        else
+            result+="$l "
+        fi
+    done
+    IFS=$' \t\n'
+    echo $result
+}
