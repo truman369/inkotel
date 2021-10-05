@@ -25,9 +25,15 @@ if { $argc == 0 } {
     # если параметра два, то задаем переменные
     set ip [lindex $argv 0]
     set ro [lindex $argv 1]
+
+    # проверка на короткий адрес, добавляем приставку, если нужно
+    if {[regexp {^(\d+)\.(\d+)$} $ip match]} {
+        set ip "192.168.$ip"
+    }
+
     # считываем ip адреса из файла, пропуская пустые строки и комментарии
     # и проверяем, входит ли в данный список наш айпи
-    if { [lsearch [exec egrep -v "^$|^#" "$basedir/config/ip/l3.ip"] 192.168.$ip] == -1 } {
+    if { [lsearch [exec egrep -v "^$|^#" "$basedir/config/ip/l3.ip"] $ip] == -1 } {
         send_error ">>> wrong ip\n"
         exit 1
     }
@@ -52,7 +58,7 @@ set password [lindex $login_data 1]
 
 
 # устанавливаем telnet сессию с коммутатором
-spawn telnet 192.168.$ip
+spawn telnet $ip
 
 # проверка на модель, маршруты меняем только на 3627G
 expect {
