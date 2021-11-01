@@ -52,8 +52,6 @@ function terminate {
     local resultfile
     if [[ -n "$@" ]]; then
         resultfile=$@
-        # чтобы визуально отличать запуски, если пишется все в один файл
-        echo $(date +'%F') >> $resultfile
     else
         resultfile="/dev/null"
     fi
