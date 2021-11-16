@@ -68,3 +68,13 @@ function iterate {
     IFS=$' \t\n'
     echo $result
 }
+
+# функция для отправки сообщений в лог операторов через клиент на python
+function send_log(){
+    cur_dir=$(pwd)
+    cd ~/op_client
+    source .venv/bin/activate
+    python client.py add -s "$1" "$2"
+    deactivate
+    cd $cur_dir
+}
