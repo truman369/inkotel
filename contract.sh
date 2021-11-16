@@ -123,7 +123,7 @@ function terminate {
                     && backup $sw_ip \
                     && git -C $git_dir add $sw_ip.cfg \
                     && git -C $git_dir commit -m "$contract termination" \
-                    && send_log "Изменение настроек на $ip" "$contract termination" \
+                    && send_log "Расторжение $contract ($(get_sw_location $sw_ip))" "$sw_ip port $port" \
                     && save $sw_ip)>$logfile
                 then
                     result+="${GREEN}Successfully terminated$NO_COLOR "
@@ -182,7 +182,7 @@ function change_port {
                 && backup $sw_ip \
                 && git -C $git_dir add $sw_ip.cfg \
                 && git -C $git_dir commit -m "$contract ${pre}block" \
-                && send_log "Изменение настроек на $ip" "$contract ${pre}block" \
+                && send_log "Изменение настроек на $sw_ip ($(get_sw_location $sw_ip))" "$contract ${pre}block" \
                 && save $sw_ip \
                 )>$logfile
             then
