@@ -127,8 +127,23 @@ function get {
     fi
 }
 
+# проверка, есть ли подключенные услуги в биллинге
+function billing_is_empty {
+    local contract=$1
+    local result=$(curl -s -d "nome_dogo=$contract" -d "go=1" "$base_url/bil.php" |
+                iconv -f "cp1251" |
+                grep -cE '<td width="120px">[А-Яа-яA-Za-z0-9 .<>()\-]+</td>')
+    return $result
+}
+
+# расторжение в серой базе
 function terminate_contract {
     local contract=$1
-    check_auth
-    local result=$(curl -s --cookie $cookie -X POST -d "rastorg=$contract" "$base_url/index.php")
+    # проверяем, что в биллинге нет других подключенных услуг
+    if ! $(billing_is_empty $contract); then
+        echo -e "${YELLOW}Warning, found services in billing! Termination in gray database cancelled.$NO_COLOR "
+    else
+        check_auth
+        local result=$(curl -s --cookie $cookie -X POST -d "rastorg=$contract" "$base_url/index.php")
+    fi
 }
