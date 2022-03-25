@@ -169,14 +169,19 @@ function set_port_state {
             commands+="no description;"
         fi
         commands+="end;"
-    elif [[ "$model" =~ .*"3526".* ]]; then
-        commands+="conf ports $port st $state desc \"$comment\";"
-    elif [[ "$model" =~ .*"3026"|"3526"|"3200-28"|"3000"|"3028G"|"1210-28X/ME".* ]]; then
+    elif [[ "$model" =~ .*"DES"|"3000"|"DGS-1210".* ]]; then
+        if [[ ! "$model" =~ .*"3000"|"C1".* ]]; then
+            comment="\"${comment}\""
+        fi
         commands+="conf ports $port st $state"
         if [[ -n "$comment" ]]; then
-            commands+=" description \"$comment\";"
+            commands+=" description ${comment};"
         else
-            commands+=" clear_description;"
+            if [[ "$model" =~ .*"3526".* ]]; then
+                commands+=" description \"\";"
+            else
+                commands+=" clear_description;"
+            fi
         fi
     else
         echo "$ip: $model not supported"

@@ -99,7 +99,13 @@ function terminate {
                 commands+="config access_profile profile_id 10 delete access_id $port;"
                 commands+="config access_profile profile_id 20 delete access_id $port;"
                 commands+="config vlan $vlan del $port;"
-                commands+="config ports $port st d d \"FREE $contract TERMINATED $(date +'%F')\";"
+                # комментарии на большинстве коммутаторов ограничены 32 символами
+                # для всех моделей кроме 3000 и C1 нужно указывать комментарий в кавычках
+                comment="FREE $contract TERMINATED $(date +'%F')"
+                if [[ ! "$model" =~ .*"3000"|"C1".* ]]; then
+                    comment="\"${comment}\""
+                fi
+                commands+="config ports $port st d d ${comment};"
                 if [[ "$model" == "DES-3526" ]]; then
                     local igmp_ports=$(send_commands "$sw_ip" "sh igmp_sn m" |
                         grep "Member ports" |
